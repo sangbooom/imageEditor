@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 에디터</title>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/font-nanum/1.0/nanumbarungothic/nanumbarungothic.css">
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="../css/wevenResponsive.css"/>
+    <link rel="stylesheet" href="../css/theme.page.main.health.css"/>
+    <link rel="stylesheet" href="../css/wvToolbarNew.css"/>
+    <link rel="stylesheet" href="../js/swiper/swiper.min.css"/>
+    <link rel="stylesheet" href="../js/aos/aos.css"/>
+    <script type="text/javascript" src="../js/jquery-1.12.0.js"></script>
+    <script type="text/javascript" src="../js/swiper/swiper.min.js"></script>
+    <script type="text/javascript" src="../js/bm.js"></script>
+    <script type="text/javascript" src="../js/rollingEvent.js"></script>
+    <script type="text/javascript" src="../js/main.js"></script>
+    <script type="text/javascript" src="../js/gnb.js"></script>
+    <script type="text/javascript" src="../js/image_editor.js"></script>
+    <script type="text/javascript" src="../js/aos/aos.js"></script>
+    <script type="text/javascript">
+
+        function setRangeBg(target){
+            var val = $(target).val();
+            var divisor = $(target).attr('max') - $(target).attr('min');
+            var rangePer = parseInt(val / divisor * 100);
+            $(target).siblings('.range_bg').css('background', 'linear-gradient(to right, #6738ff 0%, #6738ff '+ rangePer +'%, #e4ebf5 ' + rangePer + '%, #e4ebf5 100%)')
+        }
+
+        $(function(){
+            // 이미지 에디터 팝업
+            /*bm.popupManager.add('#imageEditorPopup');*/
+
+            //setRangeBg($('#videoVolumeRange'));
+
+            // 음성조절 (비디오 툴) /  밝기, 블러, 명암, 대비 조절 (이미지 에디터)
+             $('input[type="range"]').on('input', function(){
+                setRangeBg($(this));
+             });
+        });
+
+    </script>
+</head>
+<body>
+<div class="image_editor_popup_wrap" id="imageEditorPopup">
+    <div class="image_editor_con">
+        <div class="image_toolset_wrap">
+            <div class="toolset">
+                <div class="toolset_box">
+                    <div class="tool_separation">
+                        <div class="tool_separation_inner">
+                            <div class="flex_con type_3">
+                                <div class="tool_form_style_0_con">
+                                    <div class="tool_form_style_0_list type2">
+                                        <div class="tool_form_style_0_title">
+                                            가로 px
+                                        </div>
+                                        <div class="tool_form_style_0_content">
+                                            <input type="text" class="show option_input_style_0" id="width" placeholder="0">
+                                            <input type="button" class="editor_input_button border_left_none width37" id="show_width" value="적용">
+                                        </div>
+                                    </div>
+                                    <div class="tool_form_style_0_list type2">
+                                        <div class="tool_form_style_0_title">
+                                            세로 px
+                                        </div>
+                                        <div class="tool_form_style_0_content" id="asd">
+                                            <input type="text" class="show option_input_style_0" id="height" placeholder="0">
+                                            <input type="button" class="editor_input_button border_left_none width37" id="show_height" value="적용">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="toggle_btn">
+                                    <img src="../img/tool/Chain_icon.png" id="toggle" alt="">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="toolset">
+                <div class="toolset_box">
+                    <div class="tool_separation" id="left">
+                        <div class="tool_separation_inner">
+                            <div class="tool_btn tool_image">
+                                <div class="label_con">
+                                    <div class="label_img">
+                                        <img src="../img/tool/image_rotate_left.png" alt="좌측90°">
+                                    </div>
+                                    <div class="label">좌측90°</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tool_separation" id="right">
+                        <div class="tool_separation_inner">
+                            <div class="tool_btn tool_image">
+                                <div class="label_con">
+                                    <div class="label_img">
+                                        <img src="../img/tool/image_rotate_right.png" alt="우측90°">
+                                    </div>
+                                    <div class="label">우측90°</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="toolset">
+                <div class="toolset_box">
+                    <div class="tool_separation">
+                        <div class="tool_separation_inner">
+                            <div class="tool_btn tool_image">
+                                <div class="label_con" id="x_flip">
+                                    <div class="label_img"><img src="../img/tool/image_reverse_left_right.png" alt="좌우반전"></div>
+                                    <div class="label">좌우반전</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tool_separation">
+                        <div class="tool_separation_inner">
+                            <div class="tool_btn tool_image">
+                                <div class="label_con" id="y_flip">
+                                    <div class="label_img"><img src="../img/tool/image_reverse_top_bottom.png" alt="상하반전"></div>
+                                    <div class="label">상하반전</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="toolset">
+                <div class="toolset_box">
+                    <div class="tool_separation">
+                        <div class="tool_separation_inner">
+                            <div class="tool_btn tool_image">
+                                <div class="label_con" id="crop">
+                                    <div class="label_img"><img src="../img/tool/image_crop.png" alt=""></div>
+                                    <div class="label">잘라내기</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tool_separation">
+                        <div class="tool_separation_inner">
+                            <div class="tool_btn tool_image">
+                                <div class="label_con">
+                                    <div class="label_img"><img src="../img/tool/tool_image.png" alt=""></div>
+                                    <div class="label">선명하게</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="toolset">
+                <div class="toolset_box type_2">
+                    <div class="mr20 tool_separation">
+                        <div class="tool_separation_inner">
+                            <div class="flex_con">
+                                <div class="tool_form_style_0_con">
+                                    <div class="tool_form_style_0_list">
+                                        <div class="tool_form_style_0_title fontsize0">
+                                            <span class="label_img"><img src="../img/tool/image_brightness.png" alt="밝기 조절"></span>
+                                            <span class="label">밝기 조절</span>
+                                        </div>
+                                        <div class="tool_form_style_0_content">
+                                            <div class="range_con">
+                                                <input type="range" id="brightness" value="10" min="0" max="20">
+                                                <div class="range_bg"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tool_form_style_0_list">
+                                        <div class="tool_form_style_0_title fontsize0">
+                                            <span class="label_img"><img src="../img/tool/image_blur.png" alt="블러 조절"></span>
+                                            <span class="label">블러 조절</span>
+                                        </div>
+                                        <div class="tool_form_style_0_content">
+                                            <div class="range_con">
+                                                <input type="range" id="blur" value="0" min="0" max="10">
+                                                <div class="range_bg"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tool_separation">
+                        <div class="tool_separation_inner">
+                            <div class="flex_con">
+                                <div class="tool_form_style_0_con">
+                                    <div class="tool_form_style_0_list">
+                                        <div class="tool_form_style_0_title fontsize0">
+                                            <span class="label_img"><img src="../img/tool/image_contrast.png" alt="명암 조절"></span>
+                                            <span class="label">명암 조절</span>
+                                        </div>
+                                        <div class="tool_form_style_0_content">
+                                            <div class="range_con">
+                                                <input type="range" value="5" min="0" max="10">
+                                                <div class="range_bg"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="tool_form_style_0_list">
+                                        <div class="tool_form_style_0_title fontsize0">
+                                            <span class="label_img"><img src="../img/tool/image_gamma.png" alt="대비 조절"></span>
+                                            <span class="label">대비 조절</span>
+                                        </div>
+                                        <div class="tool_form_style_0_content">
+                                            <div class="range_con">
+                                                <input type="range" id="contrast" value="10" min="0" max="20">
+                                                <div class="range_bg"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="toolset">
+                <div class="toolset_box">
+                    <div class="tool_separation">
+                        <div class="tool_separation_inner">
+                            <div class="tool_form_style_0_con">
+                                <div class="tool_form_style_0_list">
+                                    <div class="mr7 tool_form_style_0_content">
+                                        <div class="mr0 tool_btn type_2 tool_image_enlargement" title="확대" id="zoom_in"></div>
+                                        <div class="tool_btn type_2 tool_image_reduction" title="축소" id="zoom_out"></div>
+                                    </div>
+                                    <div class="pr0 tool_form_style_0_title" id="imageRatio">
+                                        100%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--확대축소-->
+        </div>
+        <div class="image_editor_box" id="img_con">
+            <img src="../img/facility_3.png" alt="임시 이미지" >
+        </div>
+    </div>
+    <div class="image_editor_btn_con">
+        <button id="imageReturn">초기화</button>
+        <button id="imageSave">적용</button>
+        <button id="imageCancel">취소</button>
+    </div>
+</div>
+</body>
+</html>
