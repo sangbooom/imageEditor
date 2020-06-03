@@ -2,15 +2,11 @@ var imageEditor = {
 
     canvas: null
     , ctx: null
+    , ctxReset: null
     , editImg: null
     , toggleBtn: false
-    , toggleXflip: false
-    , toggleYflip: false
-    , angle: 0
     , zoom: 1.0
-    , rotating: false
-    , cw : null
-    , ch : null
+    , slideOldVal: null
 
     , init: function() {
         this.canvas = $('#canvas')[0];
@@ -24,19 +20,27 @@ var imageEditor = {
         var _this = this;
 
         $('#show_width').on('click', function () {
-            _this.reSize("show_width");
+            _this.reSize();
         });
 
         $('#show_height').on('click', function () {
-            _this.reSize("show_height");
+            _this.reSize();
+        });
+
+        $("#width").on('focus', function() {
+           $(this).select();
+        });
+
+        $("#height").on('focus', function() {
+            $(this).select();
         });
 
         $("#width").keydown(function(key) {
-            _this.enterKeyDown("width", key);
+            if(key.keyCode == "13") _this.reSize();
         });
 
         $("#height").keydown(function(key) {
-            _this.enterKeyDown("height", key);
+            if(key.keyCode == "13") _this.reSize();
         });
 
         $('#toggle').on('click', function(){
@@ -44,13 +48,11 @@ var imageEditor = {
         });
 
         $('#left').on('click', function () {
-            _this.angle -= 90;
-            _this.setRotation();
+            _this.setRotation("left");
         });
 
         $('#right').on('click', function () {
-            _this.angle += 90;
-            _this.setRotation(_this.angle);
+            _this.setRotation("right");
         });
 
         $('#x_flip').on('click', function() {
@@ -61,26 +63,85 @@ var imageEditor = {
             _this.setFlip("y_flip");
         });
 
+        $('#crop').on('click', function() {
+           _this.crop();
+        });
+
+        $('#sharpen').on('click', function() {
+            var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
+            var filteredData = _this.sharpen(imgData);
+
+            _this.ctx.putImageData(filteredData, 0 , 0);
+        });
+
+        /*$('#brightness').on('mousemove', function(){
+            if ($('#brightness').val() > slideOldVal) {
+                _this.setFilterBright(parseInt($('#brightness').val()));
+            }
+            val.textContent = $('#brightness').val();
+            slideOldVal = parseInt($('#brightness').val());
+        });*/   //전값보다 크면 ++ 전값보다 작으면 --하면될거같음
+
         $('#brightness').on('input', function(){
             _this.setFilterBright();
         });
 
-        $('#zoom_in').on("click", function () {
+        $('#blur').on('input', function(){
+            var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
+            var filteredData = _this.setFilterBlur(imgData, 90);
+
+            _this.ctx.putImageData(filteredData, 0 , 0);
+        });
+
+        $('#contrast').on('click', function(){
+           _this.setFilterContrast();
+        });
+
+        $('#zoom_in').on('click', function () {
             _this.zoom = ((_this.zoom*10)+1)/10;
             _this.Zoom("zoom_in");
         });
 
-        $('#zoom_out').on("click", function () {
+        $('#zoom_out').on('click', function () {
             _this.zoom = ((_this.zoom*10)-1)/10;
             _this.Zoom("zoom_out");
         });
+
+        $('#imageReturn').on('click', function() {
+            _this.reset();
+        });
+
+
+        $('#a').on('mousedown', this.onDragging);
+        $('#a').on('mouseup', this.offDragging);
+
+
+    }
+
+    , onDragging: function() {
+        $('#a').on('mousemove', function(e) {
+            var mouseX = e.offsetX;
+            var mouseY = e.offsetY;
+            var w = $('#a').offset().left;
+            var h = $('#a').offset().top;
+
+            $('#a').css({width: w, height: h});
+
+            console.log("mouseX: " + mouseX + " mouseY: " + mouseY);
+        });
+    }
+
+    , offDragging: function() {
+        $('#a').off('mousemove');
     }
 
     , setCanvas: function(path) {
         var _this = this;
         _this.editImg.src = path;
+
         _this.editImg.onload = function(){
-            _this.ctx.drawImage(_this.editImg, (_this.canvas.width - _this.editImg.width) / 2,(_this.canvas.height - _this.editImg.height) / 2);
+            _this.ctx.translate(_this.canvas.width / 2 , _this.canvas.height / 2 );
+            _this.ctx.drawImage(_this.editImg, -_this.editImg.width / 2, -_this.editImg.height / 2);
             $('#width').val(_this.editImg.width);
             $('#height').val(_this.editImg.height);
 
@@ -89,67 +150,32 @@ var imageEditor = {
     }
 
     , reSize: function(type) {
-        var w = parseInt($('#width').val(),10);
-        if(type == "show_width") {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        var w = $('#width').val();
+        var h = $('#height').val();
+        var ratio_h = Math.round( w * ( this.editImg.naturalHeight / this.editImg.naturalWidth ) );
 
-            if(this.toggleBtn) {
-                var ratio_h = Math.round(w * ( this.editImg.naturalHeight / this.editImg.naturalWidth )); //이미지의 원본크기
+        this.clearCanvas();
+        this.editImg.width = w;
+        this.editImg.height = h;
 
-                this.canvas.width = w;
-                this.canvas.height = w * ( this.editImg.naturalHeight / this.editImg.naturalWidth );
-                $('#height').val( ratio_h );
-
-                this.ctx.drawImage(this.editImg, 0, 0, w, ratio_h );
-                return ;
-            }
-            this.editImg.width = w;
-            $('#canvas')[0].width = this.editImg.width;
-            $('#canvas')[0].height = $('#height').val();
-            if( ( Math.abs(this.angle) / 90 ) % 2 == 0 ? 1 : 0 ){
-                this.ctx.drawImage(this.editImg, 0, 0, $('#canvas')[0].height,w);
-            } else {
-                this.ctx.drawImage(this.editImg, 0, 0, w, $('#canvas')[0].height);
-            }
-
-
-        } else if(type == "show_height") {
-            //this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-            var h = parseInt($('#height').val(),10);
-            this.editImg.height = h;
-            $('#canvas')[0].height = this.editImg.height;
-            this.ctx.drawImage(this.editImg, 0, 0, w, h);
+        if(isNaN(w)){ //엔터키로도 숫자아닌걸 입력했을때도 구현해야함
+            alert("숫자만 입력해주세요");
+            return ;
         }
-    }
-
-    , enterKeyDown: function(type,key) {
-        var w = parseInt($('#width').val(),10);
-        if (type == "width" && key.keyCode == 13) {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-            if(this.toggleBtn) {
-                var ratio_h = Math.round(w * ( this.editImg.naturalHeight / this.editImg.naturalWidth ));
-                this.canvas.width = w;
-                this.canvas.height = w * ( this.editImg.naturalHeight / this.editImg.naturalWidth );
-                $('#height').val( ratio_h );
-
-                this.ctx.drawImage(this.editImg, 0, 0, w, ratio_h );
-                return ;
-            }
-            this.editImg.width = w;
-            $('#canvas')[0].width = this.editImg.width;
-            $('#canvas')[0].height = $('#height').val();
-            this.ctx.drawImage(this.editImg, 0, 0, w, $('#canvas')[0].height);
-
-        } else if (type == "height" && key.keyCode == 13) {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-            var h = parseInt($('#height').val(),10);
-            this.editImg.height = h;
-            $('#canvas')[0].height = this.editImg.height;
-            this.ctx.drawImage(this.editImg, 0, 0, w, h);
+        if(this.zoom != 1.0){
+            this.zoom = 1.0;
+            $('#imageRatio').text(Math.floor(this.zoom*100) + "%");
         }
+
+        if(this.toggleBtn) {
+            $('#height').val( ratio_h );
+            this.editImg.height = ratio_h;
+            this.ctx.drawImage(this.editImg, -this.editImg.width / 2, -this.editImg.height / 2 , this.editImg.width, this.editImg.height);
+            return ;
+        }
+
+        this.ctx.drawImage(this.editImg, -this.editImg.width / 2, -this.editImg.height / 2 , this.editImg.width, this.editImg.height);
+
     }
 
     , onToggle: function(){
@@ -162,58 +188,31 @@ var imageEditor = {
     }
 
     , clearCanvas: function() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.clearRect(-this.canvas.width/2, -this.canvas.height/2, this.canvas.width, this.canvas.height);
     }
-/*
-    , toDataURL: function(){
-        var myImage = document.getElementById('myImage');
-        myImage.src = this.canvas.toDataURL();
-    }
-*/
-    , setRotation: function() {
-        var _this = this;
-        var mode = ( Math.abs(_this.angle) / 90 ) % 2 == 0 ? "h" : "v";
 
-        _this.canvas.width = mode == "h" ? _this.editImg.width : _this.editImg.height;
-        _this.canvas.height = mode == "h" ? _this.editImg.height : _this.editImg.width;
-        _this.ctx.clearRect(0, 0, _this.canvas.width, _this.canvas.height);
-        _this.ctx.save();
-        _this.ctx.translate(_this.canvas.width / 2, _this.canvas.height / 2);
-        _this.ctx.rotate(_this.angle * Math.PI / 180);
-        _this.ctx.drawImage(_this.editImg, -(_this.editImg.width) / 2, -(_this.editImg.height) / 2);
-        _this.ctx.restore();
+    , setRotation: function(type) { // 좌우측 로테이션
+        var w = this.editImg.width;
+        var h = this.editImg.height;
+        this.clearCanvas();
 
+        if(type == "left"){
+            this.ctx.rotate(-Math.PI / 2);
+        } else if(type == "right"){
+            this.ctx.rotate(Math.PI / 2);
+        }
+        this.ctx.drawImage(this.editImg, -w / 2, -h / 2 , w, h);
     }
 
 
     , setFlip: function(type) {
         this.clearCanvas();
         if(type == "x_flip"){
-            if(!this.toggleXflip) {
-                this.ctx.save();
-                this.ctx.scale(-1,1);
-                this.ctx.drawImage(this.editImg,-this.editImg.width,0);
-                this.ctx.restore();
-            } else {
-                this.ctx.save();
-                this.ctx.scale(1,1);
-                this.ctx.drawImage(this.editImg,0,0);
-                this.ctx.restore();
-            }
-            this.toggleXflip = !this.toggleXflip;
-        } else if(type == "y_flip") {
-            if(!this.toggleYflip) {
-                this.ctx.save();
-                this.ctx.scale(1,-1);
-                this.ctx.drawImage(this.editImg,0,-this.editImg.height);
-                this.ctx.restore();
-            } else {
-                this.ctx.save();
-                this.ctx.scale(1,1);
-                this.ctx.drawImage(this.editImg,0,0);
-                this.ctx.restore();
-            }
-            this.toggleYflip = !this.toggleYflip;
+            this.ctx.scale(-1,1);
+            this.ctx.drawImage(this.editImg, -this.editImg.width / 2, -this.editImg.height / 2, this.editImg.width, this.editImg.height);
+        } else if (type == "y_flip"){
+            this.ctx.scale(1,-1);
+            this.ctx.drawImage(this.editImg, -this.editImg.width / 2, -this.editImg.height / 2, this.editImg.width, this.editImg.height);
         }
     }
 
@@ -223,61 +222,153 @@ var imageEditor = {
     , getTransform: function(property) {
     }
 
-    , letCrop: function(){
+    , crop: function(){
+
+
     }
 
-    , setFilterBlur: function () {
-    }
-
-    , getFilterBright: function (pixels, value) {
-        var d = pixels.data;
-        for(var i=0; i< d.length; i+=4){
-            d[i] = value;
-            d[i+1] = value;
-            d[i+2] = value;
+    , convolution: function(imgData, weights, opaque) {
+        var side = Math.round(Math.sqrt(weights.length)); // 이미지 필터 가중치
+        var halfSide = Math.floor(side / 2); // 가중치 절반 값 저장
+        var src = imgData.data; // 원본 데이터
+        var sw = imgData.width; // 원본 데이터 넓이
+        var sh = imgData.height; // 원본 데이터 높이
+        var w = sw;
+        var h = sh;
+        var output = this.ctx.createImageData(w, h);
+        var dst = output.data;
+        var alphaFac = opaque ? 1 : 0;
+        for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {
+                var sy = y;
+                var sx = x;
+                var dstOff = (y * w + x) * 4;
+                var r = 0, g = 0, b = 0, a = 0;
+                for (var cy = 0; cy < side; cy++) {
+                    for (var cx = 0; cx < side; cx++) {
+                        var scy = sy + cy - halfSide;
+                        var scx = sx + cx - halfSide;
+                        if (scy >= 0 && scy < sh && scx >= 0 && scx < sw) {
+                            var srcOff = (scy * sw + scx) * 4;
+                            var wt = weights[cy * side + cx];
+                            r += src[srcOff] * wt;
+                            g += src[srcOff + 1] * wt;
+                            b += src[srcOff + 2] * wt;
+                            a += src[srcOff + 3] * wt;
+                        }
+                    }
+                }
+                dst[dstOff] = r;
+                dst[dstOff + 1] = g;
+                dst[dstOff + 2] = b;
+                dst[dstOff + 3] = a + alphaFac * (255 - a);
+            }
         }
-        return pixels;
+        return output;
     }
+
+    ,sharpen: function(imgData){
+        return this.convolution(imgData,
+            [ 0, -1,  0,
+              -1, 5, -1,
+              0, -1,  0 ], 0);
+    }
+
+    , setFilterBlur: function (imgData, value) {
+        var offset = 1/(value/10);
+        return this.convolution(imgData,
+            [ offset, offset, offset,
+              offset, offset, offset,
+              offset, offset, offset ], 0);
+    }
+
+
+    , getFilterBright: function (imgData, value) {
+        var d = imgData.data;
+        this.clearCanvas();
+        for(var i=0; i< d.length; i+=4) {
+            if( value > 127 ){
+                d[i] += 1;
+                d[i+1] += 1;
+                d[i+2] += 1;
+            } else if( value < 127) {
+                d[i] -= 1;
+                d[i+1] -= 1;
+                d[i+2] -= 1;
+            }
+        }
+        return imgData;
+    }
+
     , setFilterBright: function () {
-        var pixels = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-
-        var filteredData = this.getFilterBright( pixels, $('#brightness').val() * 25 );
-
-        this.ctx.save();
+        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        var filteredData = this.getFilterBright(imgData, parseInt($('#brightness').val(),10) );
         this.ctx.putImageData(filteredData, 0, 0);
-        this.ctx.restore();
+    }
+
+    , getFilterContrast: function(imgData, contrast) {
+        var d = imgData.data;
+        contrast *= 2.55;
+        var factor = (255 + contrast) / (255.01 - contrast);
+
+        for(var i=0;i<d.length;i+=4)
+        {
+            d[i] = factor * (d[i] - 128) + 128;     //r value
+            d[i+1] = factor * (d[i+1] - 128) + 128; //g value
+            d[i+2] = factor * (d[i+2] - 128) + 128; //b value
+        }
+        return imgData;
     }
 
     , setFilterContrast: function(){
+        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        var filteredData = this.getFilterContrast(imgData, parseInt($('#contrast').val(),10) );
+        this.ctx.putImageData(filteredData, 0, 0);
     }
 
-    , setZooming: function (type) {
-    }
     , Zoom: function (type) {
+        this.clearCanvas();
+        var h = Math.round( this.editImg.width * ( this.editImg.height / this.editImg.width ));
+
         if(this.zoom >= 0.1){
-
-            this.canvas.width = this.canvas.width;
-            this.canvas.height = Math.floor((this.canvas.width) * ( this.canvas.height / this.canvas.width ));
-            /*
-            this.canvas.width = this.canvas.width+(this.canvas.width*0.1);
-            this.canvas.height = this.canvas.height+(this.canvas.height*0.1);
-            */
-            this.clearCanvas();
-            this.ctx.save();
-
-            this.ctx.scale(this.zoom,this.zoom);
-            this.ctx.drawImage(this.editImg,0,0);
-
-            this.ctx.restore();
-
+            if(type == "zoom_in"){
+                this.ctx.scale(1.1,1.1);
+                /*
+                this.editImg.width += this.editImg.width * 0.1;
+                this.editImg.height +=  Math.floor( h * 0.1 );
+                */
+            } else if(type == "zoom_out"){
+                this.ctx.scale(0.9,0.9);
+                /*
+                this.editImg.width -= this.editImg.width * 0.1;
+                this.editImg.height -= Math.floor( h * 0.1 );
+                */
+            }
         } else{
+            alert("더이상 줄일 수 없습니다");
             this.zoom += 0.1;
-            return ;
         }
+        this.ctx.drawImage(this.editImg ,-this.editImg.width / 2 ,-this.editImg.height / 2 ,this.editImg.width ,this.editImg.height);
         $('#imageRatio').text(Math.floor(this.zoom*100) + "%");
     }
 
     , reset: function(){
+        this.zoom = 1.0;
+        this.editImg.width = this.editImg.naturalWidth;
+        this.editImg.height = this.editImg.naturalHeight;
+
+        this.clearCanvas();
+
+        $('#width').val(this.editImg.naturalWidth);
+        $('#height').val(this.editImg.naturalHeight);
+        $('#imageRatio').text(Math.floor(this.zoom*100) + "%");
+        $('.range_bg').css('background',"");
+        $('#brightness').val("127");
+        $('#blur').val("0");
+        $('#contrast').val("0");
+
+        this.ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.drawImage(this.editImg,-this.editImg.width / 2, -this.editImg.height / 2);
     }
 }
 
