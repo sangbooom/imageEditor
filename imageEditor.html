@@ -147,7 +147,7 @@
                     <div class="tool_separation">
                         <div class="tool_separation_inner">
                             <div class="tool_btn tool_image">
-                                <div class="label_con">
+                                <div class="label_con" id="sharpen">
                                     <div class="label_img"><img src="../img/tool/tool_image.png" alt=""></div>
                                     <div class="label">선명하게</div>
                                 </div>
@@ -169,7 +169,7 @@
                                         </div>
                                         <div class="tool_form_style_0_content">
                                             <div class="range_con">
-                                                <input type="range" id="brightness" value="10" min="0" max="20">
+                                                <input type="range" id="brightness" value="127" min="0" max="255">
                                                 <div class="range_bg"></div>
                                             </div>
                                         </div>
@@ -213,7 +213,7 @@
                                         </div>
                                         <div class="tool_form_style_0_content">
                                             <div class="range_con">
-                                                <input type="range" id="contrast" value="10" min="0" max="20">
+                                                <input type="range" id="contrast" value="0" min="-100" max="100">
                                                 <div class="range_bg"></div>
                                             </div>
                                         </div>
@@ -246,7 +246,8 @@
             <!--확대축소-->
         </div>
         <div class="image_editor_box" id="img_con">
-            <img src="../img/facility_3.png" alt="임시 이미지" >
+            <div id="a" style="background: rgba(0, 0, 0,0.5); width: 390px; height: 264px; position: absolute; border: 2px solid #ff0000;"></div>
+            <canvas id="canvas" width="960" height="551" style="border: 1px solid red"></canvas>
         </div>
     </div>
     <div class="image_editor_btn_con">
