@@ -7,6 +7,12 @@ var imageEditor = {
     , toggleBtn: false
     , zoom: 1.0
     , slideOldVal: null
+    , drag: false
+
+    , initX : 0
+    , initY : 0
+    , mousePressX : 0
+    , mousePressY : 0
 
     , init: function() {
         this.canvas = $('#canvas')[0];
@@ -111,29 +117,81 @@ var imageEditor = {
             _this.reset();
         });
 
+        document.getElementById('select_box').addEventListener('mousedown', function(event) {
+            _this.initX = this.offsetLeft;
+            _this.initY = this.offsetTop;
+            _this.mousePressX = event.clientX;
+            _this.mousePressY = event.clientY;
 
-        $('#a').on('mousedown', this.onDragging);
-        $('#a').on('mouseup', this.offDragging);
+            console.log(this.offsetLeft);
+            console.log(event.clientX);
 
+            this.addEventListener('mousemove', _this.repositionElement);
 
+            window.addEventListener('mouseup', function() {
+                document.getElementById('select_box').removeEventListener('mousemove', _this.repositionElement);
+            });
+        });
+
+        $('#control_b').on('mousedown', this.onMouseDown);
+        $('#control_b').on('mousemove', this.onMouseMove);
+        $('#control_b').on('mouseup', this.onMouseUp);
+
+        $('#control_r').on('mousedown', this.onMouseDown);
+        $('#control_r').on('mousemove', this.onMouseMove_r);
+        $('#control_r').on('mouseup', this.onMouseUp);
+
+        $('#control_edge').on('mousedown', this.onMouseDown);
+        $('#control_edge').on('mousemove', this.onMouseMove_e);
+        $('#control_edge').on('mouseup', this.onMouseUp);
     }
 
-    , onDragging: function() {
-        $('#a').on('mousemove', function(e) {
+    , repositionElement: function(event){
+        document.getElementById('select_box').style.left = this.initX + event.clientX - this.mousePressX + 'px';
+        document.getElementById('select_box').style.top = this.initY + event.clientY - this.mousePressY + 'px';
+    }
+
+    , onMouseDown: function(e) {
+        console.log("down");
+        this.drag = true;
+    }
+
+    , onMouseMove: function(e) {
+        if(this.drag){
+            console.log("move");
+            var mouseY = e.offsetY;
+            var h = $('#select_box')[0].offsetHeight - mouseY;
+            $('#select_box').css( "height", h );
+        }
+    }
+
+    , onMouseMove_r: function(e) {
+        if(this.drag){
+            console.log("move");
+             var mouseX = e.offsetX;
+             var w = $('#select_box')[0].offsetWidth - mouseX;
+             //var w = $('#control_r')[0].offsetLeft + mouseX;
+             $('#select_box').css( "width", w );
+        }
+    }
+
+    , onMouseMove_e: function(e){
+        if(this.drag){
+            console.log("edge");
             var mouseX = e.offsetX;
             var mouseY = e.offsetY;
-            var w = $('#a').offset().left;
-            var h = $('#a').offset().top;
-
-            $('#a').css({width: w, height: h});
-
-            console.log("mouseX: " + mouseX + " mouseY: " + mouseY);
-        });
+            var w = $('#select_box')[0].offsetWidth - mouseX;
+            var h = $('#select_box')[0].offsetHeight - mouseY;
+            $('#select_box').css( "width", w );
+            $('#select_box').css( "height", h );
+        }
     }
 
-    , offDragging: function() {
-        $('#a').off('mousemove');
+    , onMouseUp: function(e) {
+        console.log("up");
+        this.drag = false;
     }
+
 
     , setCanvas: function(path) {
         var _this = this;
@@ -223,8 +281,21 @@ var imageEditor = {
     }
 
     , crop: function(){
-
-
+        $('#imageCrop').css("display","inline-block");
+        $('#select_box').css("display","inline-block");
+        var _this = this;
+        $('#imageCrop').on('click', function(){
+            _this.clearCanvas();
+            _this.ctx.drawImage(_this.editImg,
+                -_this.editImg.width / 2
+                , -_this.editImg.height / 2
+                , _this.editImg.width
+                , _this.editImg.height
+                , -_this.editImg.width / 2
+                , -_this.editImg.height / 2
+                , $('#select_box')[0].offsetWidth
+                , $('#select_box')[0].offsetHeight)
+        });
     }
 
     , convolution: function(imgData, weights, opaque) {
