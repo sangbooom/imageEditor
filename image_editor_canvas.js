@@ -8,11 +8,7 @@ var imageEditor = {
     , zoom: 1.0
     , slideOldVal: null
     , drag: false
-
-    , initX : 0
-    , initY : 0
-    , mousePressX : 0
-    , mousePressY : 0
+    , toggle: false
 
     , init: function() {
         this.canvas = $('#canvas')[0];
@@ -68,9 +64,14 @@ var imageEditor = {
         $('#y_flip').on('click', function() {
             _this.setFlip("y_flip");
         });
-
         $('#crop').on('click', function() {
-           _this.crop();
+            if(!_this.toggle){
+                _this.crop();
+            } else {
+                $('#imageCrop').css("display","none");
+                $('.select_box').css("display","none");
+            }
+            _this.toggle = !_this.toggle;
         });
 
         $('#sharpen').on('click', function() {
@@ -117,79 +118,86 @@ var imageEditor = {
             _this.reset();
         });
 
-        document.getElementById('select_box').addEventListener('mousedown', function(event) {
-            _this.initX = this.offsetLeft;
-            _this.initY = this.offsetTop;
-            _this.mousePressX = event.clientX;
-            _this.mousePressY = event.clientY;
+        const el = document.querySelector(".select_box");
 
-            console.log(this.offsetLeft);
-            console.log(event.clientX);
+        el.addEventListener('mousedown', mousedown);
 
-            this.addEventListener('mousemove', _this.repositionElement);
+        function mousedown(e) {
+            var prevX = e.offsetX;
+            var prevY = e.offsetY;
 
-            window.addEventListener('mouseup', function() {
-                document.getElementById('select_box').removeEventListener('mousemove', _this.repositionElement);
-            });
-        });
+            window.addEventListener('mousemove',mousemove);
+            window.addEventListener('mouseup',mouseup);
 
-        $('#control_b').on('mousedown', this.onMouseDown);
-        $('#control_b').on('mousemove', this.onMouseMove);
-        $('#control_b').on('mouseup', this.onMouseUp);
+            function mousemove(e){
+                if(!isResizing){
+                    var newX = prevX - e.offsetX;
+                    var newY = prevY - e.offsetY;
 
-        $('#control_r').on('mousedown', this.onMouseDown);
-        $('#control_r').on('mousemove', this.onMouseMove_r);
-        $('#control_r').on('mouseup', this.onMouseUp);
+                    const rect = el.getBoundingClientRect();
 
-        $('#control_edge').on('mousedown', this.onMouseDown);
-        $('#control_edge').on('mousemove', this.onMouseMove_e);
-        $('#control_edge').on('mouseup', this.onMouseUp);
-    }
-
-    , repositionElement: function(event){
-        document.getElementById('select_box').style.left = this.initX + event.clientX - this.mousePressX + 'px';
-        document.getElementById('select_box').style.top = this.initY + event.clientY - this.mousePressY + 'px';
-    }
-
-    , onMouseDown: function(e) {
-        console.log("down");
-        this.drag = true;
-    }
-
-    , onMouseMove: function(e) {
-        if(this.drag){
-            console.log("move");
-            var mouseY = e.offsetY;
-            var h = $('#select_box')[0].offsetHeight - mouseY;
-            $('#select_box').css( "height", h );
+                    el.style.left = rect.left - newX + "px";
+                    el.style.top = rect.top - newY + "px";
+                }
+            }
+            function mouseup() {
+                window.removeEventListener("mousemove",mousemove);
+                window.removeEventListener("mouseup",mouseup);
+            }
         }
-    }
 
-    , onMouseMove_r: function(e) {
-        if(this.drag){
-            console.log("move");
-             var mouseX = e.offsetX;
-             var w = $('#select_box')[0].offsetWidth - mouseX;
-             //var w = $('#control_r')[0].offsetLeft + mouseX;
-             $('#select_box').css( "width", w );
+        const resizers = document.querySelectorAll(".resizer");
+        var currentResizer;
+        var isResizing = false;
+
+        for(var resizer of resizers) {
+        /*for(var resizer = 0; resizer < resizers.length; resizer++){*/
+
+            resizer.addEventListener('mousedown', mousedown);
+
+            function mousedown(e){
+                currentResizer = e.target;
+                isResizing = true;
+
+                var prevX = e.offsetX;
+                var prevY = e.offsetY;
+
+                window.addEventListener("mousemove",mousemove);
+                window.addEventListener("mouseup",mouseup);
+
+                function mousemove(e) {
+                    const rect = el.getBoundingClientRect();
+
+                    if(currentResizer.classList.contains("se")) {
+                        el.style.width = $('.select_box').width() - (prevX - e.offsetX) + "px";
+                        el.style.height = $('.select_box').height() - (prevY - e.offsetY) + "px";
+                        el.style.top = rect.top + "px";
+                        el.style.left = rect.left + "px";
+                    } else if (currentResizer.classList.contains("sw")) {
+                        el.style.width = $('.select_box').width() + (prevX - e.offsetX) + "px";
+                        el.style.height = $('.select_box').height() - (prevY - e.offsetY) + "px";
+                        el.style.top = rect.top + "px";
+                        el.style.left = rect.left - (prevX - e.offsetX) + "px";
+                    } else if (currentResizer.classList.contains("ne")) {
+                        el.style.width = $('.select_box').width() - (prevX - e.offsetX) + "px";
+                        el.style.height = $('.select_box').height() + (prevY - e.offsetY) + "px";
+                        el.style.top = rect.top - (prevY - e.offsetY) + "px";
+                        el.style.left = rect.left + "px";
+                    } else if (currentResizer.classList.contains("nw")) {
+                        el.style.width = $('.select_box').width() + (prevX - e.offsetX) + "px";
+                        el.style.height = $('.select_box').height() + (prevY - e.offsetY) + "px";
+                        el.style.top = rect.top - (prevY - e.offsetY) + "px";
+                        el.style.left = rect.left - (prevX - e.offsetX) + "px";
+                    }
+                }
+
+                function mouseup() {
+                    window.removeEventListener("mousemove", mousemove);
+                    window.removeEventListener("mouseup", mouseup);
+                    isResizing = false;
+                }
+            }
         }
-    }
-
-    , onMouseMove_e: function(e){
-        if(this.drag){
-            console.log("edge");
-            var mouseX = e.offsetX;
-            var mouseY = e.offsetY;
-            var w = $('#select_box')[0].offsetWidth - mouseX;
-            var h = $('#select_box')[0].offsetHeight - mouseY;
-            $('#select_box').css( "width", w );
-            $('#select_box').css( "height", h );
-        }
-    }
-
-    , onMouseUp: function(e) {
-        console.log("up");
-        this.drag = false;
     }
 
 
@@ -282,19 +290,21 @@ var imageEditor = {
 
     , crop: function(){
         $('#imageCrop').css("display","inline-block");
-        $('#select_box').css("display","inline-block");
+        $('.select_box').css("display","inline-block");
         var _this = this;
         $('#imageCrop').on('click', function(){
             _this.clearCanvas();
-            _this.ctx.drawImage(_this.editImg,
-                -_this.editImg.width / 2
-                , -_this.editImg.height / 2
-                , _this.editImg.width
-                , _this.editImg.height
-                , -_this.editImg.width / 2
-                , -_this.editImg.height / 2
-                , $('#select_box')[0].offsetWidth
-                , $('#select_box')[0].offsetHeight)
+            _this.ctx.drawImage(_this.editImg
+                , $('.select_box')[0].offsetLeft - 385 
+                , $('.select_box')[0].offsetTop - 330
+                , $('.select_box')[0].offsetWidth
+                , $('.select_box')[0].offsetHeight
+                , -$('.select_box')[0].offsetWidth / 2
+                , -$('.select_box')[0].offsetHeight / 2
+                , $('.select_box')[0].offsetWidth
+                , $('.select_box')[0].offsetHeight);
+            $('#imageCrop').css("display","none");
+            $('.select_box').css("display","none");
         });
     }
 
