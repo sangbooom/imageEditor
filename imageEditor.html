@@ -246,10 +246,11 @@
             <!--확대축소-->
         </div>
         <div class="image_editor_box" id="img_con">
-            <div id="select_box" style="display: none; background: rgba(0, 0, 0,0.5); width: 290px; height: 164px; position: absolute; border: 2px solid #ff0000;">
-                <div id="control_b" style="position: absolute; bottom: 0; width:calc( 100% - 4px ); height:5px; border: 2px solid #0000ff; cursor: n-resize;" ></div>
-                <div id="control_r" style="position: absolute; right: 0;  width: 5px; height: calc( 100% - 4px ); border: 2px solid #00ff00; cursor: e-resize;"></div>
-                <div id="control_edge" style="position: absolute; right: 0; bottom: 0; width: 10px; height: 10px; border: 2px solid #ff7e00; z-index: 99999; cursor: se-resize;"></div>
+            <div class="select_box">
+                <div class="resizer ne"></div>
+                <div class="resizer nw"></div>
+                <div class="resizer sw"></div>
+                <div class="resizer se"></div>
             </div>
             <canvas id="canvas" width="960" height="551" style="border: 1px solid red"></canvas>
         </div>
