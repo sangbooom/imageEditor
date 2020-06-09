@@ -8,3 +8,24 @@
 
 # 
 ![image](https://user-images.githubusercontent.com/43921054/83620220-fb374600-a5c7-11ea-9d3a-09acc5fcd631.png)
+
+
+
+#
+http://jsfiddle.net/3jMQD/
+resizable
+
+https://codepen.io/jkasun/pen/QrLjXP
+draggable resizable
+
+https://codepen.io/Fcmam5/pen/jmPNjV
+crop
+
+http://jsfiddle.net/jLqHv/
+심플한 selection rectangle 
+
+http://jsfiddle.net/ebeit303/kfhL0j83/
+심플한 selection rectangle
+
+http://jsfiddle.net/8wtq17L8/
+심플한 draggable
