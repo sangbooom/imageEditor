@@ -8,7 +8,8 @@ var imageEditor = {
     , zoom: 1.0
     , slideOldVal: null
     , drag: false
-    , toggle: false
+    , toggleCrop: false
+    , angleCount: 0
 
     , init: function() {
         this.canvas = $('#canvas')[0];
@@ -65,16 +66,58 @@ var imageEditor = {
             _this.setFlip("y_flip");
         });
         $('#crop').on('click', function() {
-            if(!_this.toggle){
-                _this.crop();
+            if(!_this.toggleCrop){
+                var offsetH = $('#height').val();
+                var offsetW = $('#width').val();
+                if(_this.angleCount % 2 == 1) {
+                    $('.select_box').css({"width": offsetH + "px", "height": offsetW + "px"});
+                } else {
+                    $('.select_box').css({"width":offsetW + "px","height":offsetH + "px"});
+                }
+                $('#imageCrop').css("display","inline-block");
+                $('.select_box').css("display","inline-block");
+
+                var offsetL = document.getElementsByClassName('select_box')[0].offsetLeft;
+                var offsetT = document.getElementsByClassName('select_box')[0].offsetTop;
+
+
+
+                $('#imageCrop').on('click', function(){
+                    _this.clearCanvas();
+
+                    if(_this.angleCount % 2 == 1){
+                        _this.ctx.drawImage(_this.editImg
+                            , $('.select_box')[0].offsetTop - 265
+                            , $('.select_box')[0].offsetLeft - 448
+                            , $('.select_box')[0].offsetHeight
+                            , $('.select_box')[0].offsetWidth
+                            , -$('.select_box')[0].offsetHeight / 2
+                            , -$('.select_box')[0].offsetWidth / 2
+                            , $('.select_box')[0].offsetHeight
+                            , $('.select_box')[0].offsetWidth);
+                    } else {
+                        _this.ctx.drawImage(_this.editImg
+                            , $('.select_box')[0].offsetLeft - offsetL
+                            , $('.select_box')[0].offsetTop - offsetT
+                            , $('.select_box')[0].offsetWidth
+                            , $('.select_box')[0].offsetHeight
+                            , -$('.select_box')[0].offsetWidth / 2
+                            , -$('.select_box')[0].offsetHeight / 2
+                            , $('.select_box')[0].offsetWidth
+                            , $('.select_box')[0].offsetHeight);
+                    }
+                    $('#imageCrop').css("display","none");
+                    $('.select_box').css("display","none");
+
+                });
             } else {
                 $('#imageCrop').css("display","none");
                 $('.select_box').css("display","none");
             }
-            _this.toggle = !_this.toggle;
+            _this.toggleCrop = !_this.toggleCrop;
         });
 
-        $('#sharpen').on('click', function() {
+        $('#sharpen').on('input', function() {
             var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
             var filteredData = _this.sharpen(imgData);
 
@@ -119,85 +162,122 @@ var imageEditor = {
         });
 
         const el = document.querySelector(".select_box");
+        var isResizing = false;
 
         el.addEventListener('mousedown', mousedown);
 
         function mousedown(e) {
+            if(isResizing){
+                return;
+            }
             var prevX = e.offsetX;
             var prevY = e.offsetY;
 
-            window.addEventListener('mousemove',mousemove);
-            window.addEventListener('mouseup',mouseup);
+            el.addEventListener('mousemove',mousemove);
+            el.addEventListener('mouseup',mouseup);
 
             function mousemove(e){
-                if(!isResizing){
-                    var newX = prevX - e.offsetX;
-                    var newY = prevY - e.offsetY;
+                var newX = prevX - e.offsetX;
+                var newY = prevY - e.offsetY;
 
-                    const rect = el.getBoundingClientRect();
+                var rect = el.getBoundingClientRect();
+                console.log(rect);
 
-                    el.style.left = rect.left - newX + "px";
-                    el.style.top = rect.top - newY + "px";
+                if(rect.x < 385) {
+                    rect.x = 385;
+                    rect.left = 385;
                 }
+                if(rect.y < 330) {
+                    rect.top = 330;
+                    rect.y = 330;
+                }
+
+                el.style.left = rect.left - newX + "px";
+                el.style.top = rect.top - newY + "px";
+
             }
             function mouseup() {
-                window.removeEventListener("mousemove",mousemove);
-                window.removeEventListener("mouseup",mouseup);
+                el.removeEventListener("mousemove",mousemove);
+                el.removeEventListener("mouseup",mouseup);
             }
         }
 
-        const resizers = document.querySelectorAll(".resizer");
+        var resizers = document.querySelectorAll(".resizer");
         var currentResizer;
-        var isResizing = false;
 
-        for(var resizer of resizers) {
-        /*for(var resizer = 0; resizer < resizers.length; resizer++){*/
-
+        resizers.forEach(function(resizer){
             resizer.addEventListener('mousedown', mousedown);
 
             function mousedown(e){
+                console.log("리사이즈를 위한 다운....")
                 currentResizer = e.target;
                 isResizing = true;
 
                 var prevX = e.offsetX;
                 var prevY = e.offsetY;
 
-                window.addEventListener("mousemove",mousemove);
-                window.addEventListener("mouseup",mouseup);
+                el.addEventListener("mousemove",mousemove);
+                el.addEventListener("mouseup",mouseup);
 
                 function mousemove(e) {
-                    const rect = el.getBoundingClientRect();
+                    var rect = el.getBoundingClientRect();
+                    console.log(rect);
+                    if(rect.x < 385) {
+                        rect.x = 386;
+                    }
+                    if(rect.y < 330) {
+                        rect.y = 331;
+                    }
+                    if(rect.width > 389) {
+                        rect.width = 389;
+                    }
+                    if(rect.width < 50) {
+                        rect.width = 51;
+                    }
+
+                    if(rect.height > 264) {
+                        rect.height = 264;
+                    }
+                    if(rect.height < 50) {
+                        rect.height = 51;
+                    }
+                    if(rect.bottom > 593) {
+                        rect.bottom = 594;
+                    }
+                    if(rect.right > 775) {
+                        rect.right = 776;
+                    }
 
                     if(currentResizer.classList.contains("se")) {
-                        el.style.width = $('.select_box').width() - (prevX - e.offsetX) + "px";
-                        el.style.height = $('.select_box').height() - (prevY - e.offsetY) + "px";
+                        el.style.width = rect.width - (prevX - e.offsetX) + "px";
+                        el.style.height = rect.height - (prevY - e.offsetY) + "px";
                         el.style.top = rect.top + "px";
                         el.style.left = rect.left + "px";
                     } else if (currentResizer.classList.contains("sw")) {
-                        el.style.width = $('.select_box').width() + (prevX - e.offsetX) + "px";
-                        el.style.height = $('.select_box').height() - (prevY - e.offsetY) + "px";
+                        el.style.width = rect.width + (prevX - e.offsetX) + "px";
+                        el.style.height = rect.height - (prevY - e.offsetY) + "px";
                         el.style.top = rect.top + "px";
                         el.style.left = rect.left - (prevX - e.offsetX) + "px";
                     } else if (currentResizer.classList.contains("ne")) {
-                        el.style.width = $('.select_box').width() - (prevX - e.offsetX) + "px";
-                        el.style.height = $('.select_box').height() + (prevY - e.offsetY) + "px";
+                        el.style.width = rect.width  - (prevX - e.offsetX) + "px";
+                        el.style.height = rect.height + (prevY - e.offsetY) + "px";
                         el.style.top = rect.top - (prevY - e.offsetY) + "px";
                         el.style.left = rect.left + "px";
                     } else if (currentResizer.classList.contains("nw")) {
-                        el.style.width = $('.select_box').width() + (prevX - e.offsetX) + "px";
-                        el.style.height = $('.select_box').height() + (prevY - e.offsetY) + "px";
+                        el.style.width = rect.width + (prevX - e.offsetX) + "px";
+                        el.style.height = rect.height + (prevY - e.offsetY) + "px";
                         el.style.top = rect.top - (prevY - e.offsetY) + "px";
                         el.style.left = rect.left - (prevX - e.offsetX) + "px";
                     }
                 }
 
                 function mouseup() {
-                    window.removeEventListener("mousemove", mousemove);
-                    window.removeEventListener("mouseup", mouseup);
+                    el.removeEventListener("mousemove", mousemove);
+                    el.removeEventListener("mouseup", mouseup);
                     isResizing = false;
                 }
             }
-        }
+        })
     }
 
 
@@ -247,9 +327,9 @@ var imageEditor = {
     , onToggle: function(){
         this.toggleBtn = !this.toggleBtn;
         if(this.toggleBtn) {
-            $('#asd input').attr('disabled', this.toggleBtn);
+            $('#apply input').attr('disabled', this.toggleBtn);
         } else {
-            $('#asd input').attr('disabled', this.toggleBtn);
+            $('#apply input').attr('disabled', this.toggleBtn);
         }
     }
 
@@ -260,12 +340,15 @@ var imageEditor = {
     , setRotation: function(type) { // 좌우측 로테이션
         var w = this.editImg.width;
         var h = this.editImg.height;
+
         this.clearCanvas();
 
         if(type == "left"){
             this.ctx.rotate(-Math.PI / 2);
+            this.angleCount++;
         } else if(type == "right"){
             this.ctx.rotate(Math.PI / 2);
+            this.angleCount++;
         }
         this.ctx.drawImage(this.editImg, -w / 2, -h / 2 , w, h);
     }
@@ -289,23 +372,7 @@ var imageEditor = {
     }
 
     , crop: function(){
-        $('#imageCrop').css("display","inline-block");
-        $('.select_box').css("display","inline-block");
-        var _this = this;
-        $('#imageCrop').on('click', function(){
-            _this.clearCanvas();
-            _this.ctx.drawImage(_this.editImg
-                , $('.select_box')[0].offsetLeft - 385 
-                , $('.select_box')[0].offsetTop - 330
-                , $('.select_box')[0].offsetWidth
-                , $('.select_box')[0].offsetHeight
-                , -$('.select_box')[0].offsetWidth / 2
-                , -$('.select_box')[0].offsetHeight / 2
-                , $('.select_box')[0].offsetWidth
-                , $('.select_box')[0].offsetHeight);
-            $('#imageCrop').css("display","none");
-            $('.select_box').css("display","none");
-        });
+
     }
 
     , convolution: function(imgData, weights, opaque) {
@@ -447,6 +514,7 @@ var imageEditor = {
         $('#brightness').val("127");
         $('#blur').val("0");
         $('#contrast').val("0");
+        $('#sharpen').val("0");
 
         this.ctx.setTransform(1, 0, 0, 1, this.canvas.width / 2, this.canvas.height / 2);
         this.ctx.drawImage(this.editImg,-this.editImg.width / 2, -this.editImg.height / 2);
