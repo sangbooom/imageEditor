@@ -787,37 +787,38 @@ type_3 : 버튼 클릭시 전체 감싸는 진한 보더 없는 경우 (toolset_
 .select_box {
     display: none;
     background: rgba(0, 0, 0,0.5);
-    width: 290px;
-    height: 164px;
     position: absolute;
     cursor: all-scroll;
 }
 
 .resizer {
     position: absolute;
-    width: 6px;
-    height: 6px;
-    background-color: #ffff00;
-    z-index: 2;
+    width: 20px;
+    height: 20px;
+    border : 1px solid blue;
 }
 
-.resizer.nw {
+.resizer.top-left {
     top: -3px;
     left: -3px;
     cursor: nw-resize;
+    z-index : 99999;
 }
-.resizer.ne {
+.resizer.top-right {
     top: -3px;
     right: -3px;
     cursor: ne-resize;
+    z-index : 99999;
 }
-.resizer.sw {
+.resizer.bottom-left {
     bottom: -3px;
     left: -3px;
     cursor: sw-resize;
+    z-index : 99999;
 }
-.resizer.se {
+.resizer.bottom-right {
     bottom: -3px;
     right: -3px;
     cursor: se-resize;
+    z-index : 99999;
 }
