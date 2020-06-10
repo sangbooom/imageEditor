@@ -66,7 +66,6 @@ var imageEditor = {
             _this.setFlip("y_flip");
         });
         $('#crop').on('click', function() {
-            if(!_this.toggleCrop){
                 var offsetH = $('#height').val();
                 var offsetW = $('#width').val();
                 if(_this.angleCount % 2 == 1) {
@@ -79,7 +78,6 @@ var imageEditor = {
 
                 var offsetL = document.getElementsByClassName('select_box')[0].offsetLeft;
                 var offsetT = document.getElementsByClassName('select_box')[0].offsetTop;
-
 
 
                 $('#imageCrop').on('click', function(){
@@ -110,11 +108,7 @@ var imageEditor = {
                     $('.select_box').css("display","none");
 
                 });
-            } else {
-                $('#imageCrop').css("display","none");
-                $('.select_box').css("display","none");
-            }
-            _this.toggleCrop = !_this.toggleCrop;
+
         });
 
         $('#sharpen').on('input', function() {
@@ -124,16 +118,14 @@ var imageEditor = {
             _this.ctx.putImageData(filteredData, 0 , 0);
         });
 
-        /*$('#brightness').on('mousemove', function(){
-            if ($('#brightness').val() > slideOldVal) {
-                _this.setFilterBright(parseInt($('#brightness').val()));
-            }
-            val.textContent = $('#brightness').val();
-            slideOldVal = parseInt($('#brightness').val());
-        });*/   //전값보다 크면 ++ 전값보다 작으면 --하면될거같음
-
-        $('#brightness').on('input', function(){
-            _this.setFilterBright();
+        $('#brightness').each(function(){
+           var inputVal = $(this).val();
+            $(this).on('change', function() {
+                console.log('Current Value: ',$(this).val());
+                console.log('Old Value: ', inputVal);
+                _this.setFilterBright($(this).val(), inputVal);
+                inputVal = $(this).val();
+            })
         });
 
         $('#blur').on('input', function(){
@@ -161,40 +153,25 @@ var imageEditor = {
             _this.reset();
         });
 
-        const el = document.querySelector(".select_box");
+        var el = document.querySelector(".select_box");
         var isResizing = false;
 
         el.addEventListener('mousedown', mousedown);
 
         function mousedown(e) {
-            if(isResizing){
-                return;
-            }
-            var prevX = e.offsetX;
-            var prevY = e.offsetY;
-
             el.addEventListener('mousemove',mousemove);
             el.addEventListener('mouseup',mouseup);
 
+            var prevX = e.offsetX;
+            var prevY = e.offsetY;
+
             function mousemove(e){
-                var newX = prevX - e.offsetX;
-                var newY = prevY - e.offsetY;
+                if(!isResizing) {
+                    var rect = el.getBoundingClientRect();
 
-                var rect = el.getBoundingClientRect();
-                console.log(rect);
-
-                if(rect.x < 385) {
-                    rect.x = 385;
-                    rect.left = 385;
+                    el.style.left = rect.left - (prevX - e.offsetX) + "px";
+                    el.style.top = rect.top - (prevY - e.offsetY) + "px";
                 }
-                if(rect.y < 330) {
-                    rect.top = 330;
-                    rect.y = 330;
-                }
-
-                el.style.left = rect.left - newX + "px";
-                el.style.top = rect.top - newY + "px";
-
             }
             function mouseup() {
                 el.removeEventListener("mousemove",mousemove);
@@ -204,76 +181,112 @@ var imageEditor = {
 
         var resizers = document.querySelectorAll(".resizer");
         var currentResizer;
-
+        var min_width = 50;
+        var min_height = 50;
+        var max_width = $('#width').val();
+        var max_height = $('#height').val();
         resizers.forEach(function(resizer){
             resizer.addEventListener('mousedown', mousedown);
-
             function mousedown(e){
-                console.log("리사이즈를 위한 다운....")
+
                 currentResizer = e.target;
                 isResizing = true;
 
                 var prevX = e.offsetX;
                 var prevY = e.offsetY;
 
-                el.addEventListener("mousemove",mousemove);
-                el.addEventListener("mouseup",mouseup);
+                resizer.addEventListener("mousemove",mousemove);
+                resizer.addEventListener("mouseup",mouseup);
 
                 function mousemove(e) {
                     var rect = el.getBoundingClientRect();
                     console.log(rect);
-                    if(rect.x < 385) {
-                        rect.x = 386;
-                    }
-                    if(rect.y < 330) {
-                        rect.y = 331;
-                    }
-                    if(rect.width > 389) {
-                        rect.width = 389;
-                    }
-                    if(rect.width < 50) {
-                        rect.width = 51;
+
+                    /*
+                     if(rect.width > parseInt($('#width').val(),10)) {
+                        rect.width = parseInt($('#width').val(),10);
+                     }
+                     if(rect.height > parseInt($('#height').val(),10)) {
+                        rect.height = parseInt($('#height').val(),10);
+                     }
+
+                     if(rect.bottom > 593) {
+                        rect.bottom = 593;
+                     }
+                     if(rect.right > 775) {
+                        rect.right = 775;
+                     }
+                     */
+
+                    if(currentResizer.classList.contains("bottom-right")) {
+                        var w = rect.width - (prevX - e.offsetX);
+                        var h = rect.height - (prevY - e.offsetY);
+                        if(w > min_width && w < max_width) {
+                            el.style.width = w + "px";
+                        }
+                        if(h > min_height && h < max_height) {
+                            el.style.height = h + "px";
+                        }
+                        if(rect.left > 385){
+                            el.style.left = rect.left + "px";
+                        }
+                        if(rect.top > 330){
+                            el.style.top = rect.top + "px";
+                        }
+                    } else if (currentResizer.classList.contains("bottom-left")) {
+                        var w = rect.width + (prevX - e.offsetX);
+                        var h = rect.height - (prevY - e.offsetY);
+                        if(w > min_width && w < max_width) {
+                            el.style.width = w + "px";
+                        }
+                        if(h > min_height && h < max_height) {
+                            el.style.height = h + "px";
+                        }
+                        if(rect.top > 330){
+                            el.style.top = rect.top + "px";
+                        }
+                        if(rect.left > 385) {
+                            el.style.left = rect.left - (prevX - e.offsetX) + "px";
+                        }
+                    } else if (currentResizer.classList.contains("top-right")) {
+                        var w = rect.width  - (prevX - e.offsetX);
+                        var h = rect.height + (prevY - e.offsetY);
+                        if(w > min_width && w < max_width) {
+                            el.style.width = w + "px";
+                        }
+                        if(h > min_height && h < max_height) {
+                            el.style.height = h + "px";
+                        }
+                        if(rect.top > 330) {
+                            el.style.top = rect.y - (prevY - e.offsetY) + "px";
+                        }
+                        if(rect.left > 385){
+                            el.style.left = rect.left + "px";
+                        }
+                    } else if (currentResizer.classList.contains("top-left")) {
+                        var w = rect.width + (prevX - e.offsetX);
+                        var h = rect.height + (prevY - e.offsetY);
+                        if(w > min_width && w < max_width) {
+                            el.style.width = w + "px";
+                        }
+                        if(h > min_height && h < max_height) {
+                            el.style.height = h + "px";
+                        }
+                        if(rect.top > 330) {
+                            el.style.top = rect.top - (prevY - e.offsetY) + "px";
+                        }
+                        if(rect.left > 385){
+                            el.style.left = rect.left - (prevX - e.offsetX) + "px";
+                        }
                     }
 
-                    if(rect.height > 264) {
-                        rect.height = 264;
-                    }
-                    if(rect.height < 50) {
-                        rect.height = 51;
-                    }
-                    if(rect.bottom > 593) {
-                        rect.bottom = 594;
-                    }
-                    if(rect.right > 775) {
-                        rect.right = 776;
-                    }
-
-                    if(currentResizer.classList.contains("se")) {
-                        el.style.width = rect.width - (prevX - e.offsetX) + "px";
-                        el.style.height = rect.height - (prevY - e.offsetY) + "px";
-                        el.style.top = rect.top + "px";
-                        el.style.left = rect.left + "px";
-                    } else if (currentResizer.classList.contains("sw")) {
-                        el.style.width = rect.width + (prevX - e.offsetX) + "px";
-                        el.style.height = rect.height - (prevY - e.offsetY) + "px";
-                        el.style.top = rect.top + "px";
-                        el.style.left = rect.left - (prevX - e.offsetX) + "px";
-                    } else if (currentResizer.classList.contains("ne")) {
-                        el.style.width = rect.width  - (prevX - e.offsetX) + "px";
-                        el.style.height = rect.height + (prevY - e.offsetY) + "px";
-                        el.style.top = rect.top - (prevY - e.offsetY) + "px";
-                        el.style.left = rect.left + "px";
-                    } else if (currentResizer.classList.contains("nw")) {
-                        el.style.width = rect.width + (prevX - e.offsetX) + "px";
-                        el.style.height = rect.height + (prevY - e.offsetY) + "px";
-                        el.style.top = rect.top - (prevY - e.offsetY) + "px";
-                        el.style.left = rect.left - (prevX - e.offsetX) + "px";
-                    }
+                    //prevX = e.offsetX;
+                    //prevY = e.offsetY;
                 }
 
                 function mouseup() {
-                    el.removeEventListener("mousemove", mousemove);
-                    el.removeEventListener("mouseup", mouseup);
+                    resizer.removeEventListener("mousemove", mousemove);
+                    resizer.removeEventListener("mouseup", mouseup);
                     isResizing = false;
                 }
             }
@@ -326,15 +339,15 @@ var imageEditor = {
 
     , onToggle: function(){
         this.toggleBtn = !this.toggleBtn;
-        if(this.toggleBtn) {
-            $('#apply input').attr('disabled', this.toggleBtn);
-        } else {
-            $('#apply input').attr('disabled', this.toggleBtn);
-        }
+        $('#apply input').attr('disabled', this.toggleBtn);
     }
 
     , clearCanvas: function() {
-        this.ctx.clearRect(-this.canvas.width/2, -this.canvas.height/2, this.canvas.width, this.canvas.height);
+        if(this.angleCount % 2 == 1){
+            this.ctx.clearRect(-this.canvas.height/2, -this.canvas.width/2, this.canvas.height, this.canvas.width);
+        } else {
+            this.ctx.clearRect(-this.canvas.width/2, -this.canvas.height/2, this.canvas.width, this.canvas.height);
+        }
     }
 
     , setRotation: function(type) { // 좌우측 로테이션
@@ -431,26 +444,26 @@ var imageEditor = {
     }
 
 
-    , getFilterBright: function (imgData, value) {
+    , getFilterBright: function (imgData, value, current, old) {
         var d = imgData.data;
         this.clearCanvas();
         for(var i=0; i< d.length; i+=4) {
-            if( value > 127 ){
-                d[i] += 1;
-                d[i+1] += 1;
-                d[i+2] += 1;
-            } else if( value < 127) {
-                d[i] -= 1;
-                d[i+1] -= 1;
-                d[i+2] -= 1;
+            if( current > old ){
+                d[i] *= 1.5;
+                d[i+1] *= 1.5;
+                d[i+2] *= 1.5;
+            } else {
+                d[i] /= 1.5;
+                d[i+1] /= 1.5;
+                d[i+2] /= 1.5;
             }
         }
         return imgData;
     }
 
-    , setFilterBright: function () {
+    , setFilterBright: function (current, old) {
         var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        var filteredData = this.getFilterBright(imgData, parseInt($('#brightness').val(),10) );
+        var filteredData = this.getFilterBright(imgData, parseInt($('#brightness').val(),10) , current , old);
         this.ctx.putImageData(filteredData, 0, 0);
     }
 
@@ -480,17 +493,12 @@ var imageEditor = {
 
         if(this.zoom >= 0.1){
             if(type == "zoom_in"){
-                this.ctx.scale(1.1,1.1);
-                /*
                 this.editImg.width += this.editImg.width * 0.1;
                 this.editImg.height +=  Math.floor( h * 0.1 );
-                */
+
             } else if(type == "zoom_out"){
-                this.ctx.scale(0.9,0.9);
-                /*
                 this.editImg.width -= this.editImg.width * 0.1;
                 this.editImg.height -= Math.floor( h * 0.1 );
-                */
             }
         } else{
             alert("더이상 줄일 수 없습니다");
@@ -509,9 +517,13 @@ var imageEditor = {
 
         $('#width').val(this.editImg.naturalWidth);
         $('#height').val(this.editImg.naturalHeight);
+
+        this.toggleBtn = false;
+        $('#apply input').attr('disabled', this.toggleBtn);
+
         $('#imageRatio').text(Math.floor(this.zoom*100) + "%");
         $('.range_bg').css('background',"");
-        $('#brightness').val("127");
+        $('#brightness').val("2");
         $('#blur').val("0");
         $('#contrast').val("0");
         $('#sharpen').val("0");
