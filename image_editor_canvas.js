@@ -66,12 +66,10 @@ var imageEditor = {
             _this.setFlip("y_flip");
         });
         $('#crop').on('click', function() {
-                var offsetH = $('#height').val();
-                var offsetW = $('#width').val();
                 if(_this.angleCount % 2 == 1) {
-                    $('.select_box').css({"width": offsetH + "px", "height": offsetW + "px"});
+                    $('.select_box').css({"width":_this.editImg.height + "px","height":_this.editImg.width + "px"});
                 } else {
-                    $('.select_box').css({"width":offsetW + "px","height":offsetH + "px"});
+                    $('.select_box').css({"width": _this.editImg.width + "px", "height": _this.editImg.height + "px"});
                 }
                 $('#imageCrop').css("display","inline-block");
                 $('.select_box').css("display","inline-block");
@@ -85,14 +83,19 @@ var imageEditor = {
 
                     if(_this.angleCount % 2 == 1){
                         _this.ctx.drawImage(_this.editImg
-                            , $('.select_box')[0].offsetTop - 265
-                            , $('.select_box')[0].offsetLeft - 448
+                            , $('.select_box')[0].offsetTop - offsetT
+                            , $('.select_box')[0].offsetLeft - offsetL
                             , $('.select_box')[0].offsetHeight
                             , $('.select_box')[0].offsetWidth
                             , -$('.select_box')[0].offsetHeight / 2
                             , -$('.select_box')[0].offsetWidth / 2
                             , $('.select_box')[0].offsetHeight
                             , $('.select_box')[0].offsetWidth);
+
+                        
+                        //$('#width').val =  _this.editImg.width;
+                        //$('#height').val = _this.editImg.height;
+
                     } else {
                         _this.ctx.drawImage(_this.editImg
                             , $('.select_box')[0].offsetLeft - offsetL
@@ -106,7 +109,8 @@ var imageEditor = {
                     }
                     $('#imageCrop').css("display","none");
                     $('.select_box').css("display","none");
-
+                    //$('#width').val =  _this.editImg.width;
+                    //$('#height').val = _this.editImg.height;
                 });
 
         });
@@ -155,10 +159,24 @@ var imageEditor = {
 
         var el = document.querySelector(".select_box");
         var isResizing = false;
+        var targetImg = {
+            minWidth : 50,
+            minHeight : 50,
+            maxWidth : 390, //parseInt($('#width').val(),10),
+            maxHeight : 264, //parseInt($('#height').val(),10),
+            left : 385,//$('.select_box')[0].offsetLeft,
+            top : 330,//$('.select_box')[0].offsetTop,
+            right : 775,//$('.select_box')[0].offsetLeft + $('.select_box').width(),
+            bottom : 594//$('.select_box')[0].offsetTop + $('.select_box').height()
+        }
 
         el.addEventListener('mousedown', mousedown);
 
         function mousedown(e) {
+            //if(isResizing) {
+            //   return;
+            //}
+
             el.addEventListener('mousemove',mousemove);
             el.addEventListener('mouseup',mouseup);
 
@@ -168,27 +186,38 @@ var imageEditor = {
             function mousemove(e){
                 if(!isResizing) {
                     var rect = el.getBoundingClientRect();
-
                     el.style.left = rect.left - (prevX - e.offsetX) + "px";
                     el.style.top = rect.top - (prevY - e.offsetY) + "px";
+
+                    if(el.offsetLeft < targetImg.left) {
+                        el.style.left = targetImg.left + "px";
+                    }
+                    if(el.offsetTop < targetImg.top) {
+                        el.style.top = targetImg.top + "px";
+                    }
+                    if(el.offsetLeft +  $(el).width() > targetImg.right) {
+                        el.style.left = targetImg.left + (targetImg.maxWidth - $(el).width()) + "px"
+                    }
+                    if(el.offsetTop +  $(el).height() > targetImg.bottom) {
+                        el.style.top = targetImg.top + (targetImg.maxHeight - $(el).height()) + "px";
+                    }
                 }
             }
             function mouseup() {
                 el.removeEventListener("mousemove",mousemove);
                 el.removeEventListener("mouseup",mouseup);
             }
+
         }
 
         var resizers = document.querySelectorAll(".resizer");
         var currentResizer;
-        var min_width = 50;
-        var min_height = 50;
-        var max_width = $('#width').val();
-        var max_height = $('#height').val();
+
         resizers.forEach(function(resizer){
             resizer.addEventListener('mousedown', mousedown);
             function mousedown(e){
-
+                e.stopPropagation();
+                console.log("resizer down");
                 currentResizer = e.target;
                 isResizing = true;
 
@@ -196,103 +225,114 @@ var imageEditor = {
                 var prevY = e.offsetY;
 
                 resizer.addEventListener("mousemove",mousemove);
-                resizer.addEventListener("mouseup",mouseup);
+                window.addEventListener("mouseup",mouseup);
 
                 function mousemove(e) {
                     var rect = el.getBoundingClientRect();
-                    console.log(rect);
+                    //console.log(rect);
 
-                    /*
-                     if(rect.width > parseInt($('#width').val(),10)) {
-                        rect.width = parseInt($('#width').val(),10);
-                     }
-                     if(rect.height > parseInt($('#height').val(),10)) {
-                        rect.height = parseInt($('#height').val(),10);
-                     }
 
-                     if(rect.bottom > 593) {
-                        rect.bottom = 593;
-                     }
-                     if(rect.right > 775) {
-                        rect.right = 775;
-                     }
-                     */
 
                     if(currentResizer.classList.contains("bottom-right")) {
                         var w = rect.width - (prevX - e.offsetX);
                         var h = rect.height - (prevY - e.offsetY);
-                        if(w > min_width && w < max_width) {
+                        if(w > targetImg.minWidth && w < targetImg.maxWidth - ( rect.left - targetImg.left)) {
                             el.style.width = w + "px";
                         }
-                        if(h > min_height && h < max_height) {
+                        if(h > targetImg.minHeight && h < targetImg.maxHeight - ( rect.top - targetImg.top )) {
                             el.style.height = h + "px";
                         }
-                        if(rect.left > 385){
+                        if(rect.left > targetImg.left){
                             el.style.left = rect.left + "px";
                         }
-                        if(rect.top > 330){
+                        if(rect.top > targetImg.top){
                             el.style.top = rect.top + "px";
                         }
                     } else if (currentResizer.classList.contains("bottom-left")) {
                         var w = rect.width + (prevX - e.offsetX);
                         var h = rect.height - (prevY - e.offsetY);
-                        if(w > min_width && w < max_width) {
+                        if(w > targetImg.minWidth && w < targetImg.maxWidth - ( targetImg.right - rect.right)) {
                             el.style.width = w + "px";
                         }
-                        if(h > min_height && h < max_height) {
+                        if(h > targetImg.minHeight && h < targetImg.maxHeight - ( rect.top - targetImg.top )) {
                             el.style.height = h + "px";
                         }
-                        if(rect.top > 330){
+                        if(rect.top > targetImg.top){
                             el.style.top = rect.top + "px";
                         }
-                        if(rect.left > 385) {
+                        if(rect.left > targetImg.left) {
                             el.style.left = rect.left - (prevX - e.offsetX) + "px";
                         }
                     } else if (currentResizer.classList.contains("top-right")) {
                         var w = rect.width  - (prevX - e.offsetX);
                         var h = rect.height + (prevY - e.offsetY);
-                        if(w > min_width && w < max_width) {
+                        if(w > targetImg.minWidth && w < targetImg.maxWidth - ( rect.left - targetImg.left)) {
                             el.style.width = w + "px";
                         }
-                        if(h > min_height && h < max_height) {
+                        if(h > targetImg.minHeight && h < targetImg.maxHeight - ( targetImg.bottom - rect.bottom )) {
                             el.style.height = h + "px";
                         }
-                        if(rect.top > 330) {
+                        if(rect.top > targetImg.top) {
                             el.style.top = rect.y - (prevY - e.offsetY) + "px";
                         }
-                        if(rect.left > 385){
+                        if(rect.left > targetImg.left){
                             el.style.left = rect.left + "px";
                         }
                     } else if (currentResizer.classList.contains("top-left")) {
                         var w = rect.width + (prevX - e.offsetX);
                         var h = rect.height + (prevY - e.offsetY);
-                        if(w > min_width && w < max_width) {
+                        if(w > targetImg.minWidth && w < targetImg.maxWidth - ( targetImg.right - rect.right )) {
                             el.style.width = w + "px";
                         }
-                        if(h > min_height && h < max_height) {
+                        if(h > targetImg.minHeight && h < targetImg.maxHeight - ( targetImg.bottom - rect.bottom )) {
                             el.style.height = h + "px";
                         }
-                        if(rect.top > 330) {
+                        if(rect.top > targetImg.top) {
                             el.style.top = rect.top - (prevY - e.offsetY) + "px";
                         }
-                        if(rect.left > 385){
+                        if(rect.left > targetImg.left){
                             el.style.left = rect.left - (prevX - e.offsetX) + "px";
                         }
                     }
 
-                    //prevX = e.offsetX;
-                    //prevY = e.offsetY;
                 }
 
                 function mouseup() {
                     resizer.removeEventListener("mousemove", mousemove);
-                    resizer.removeEventListener("mouseup", mouseup);
+                    window.removeEventListener("mouseup", mouseup);
                     isResizing = false;
                 }
             }
         })
-    }
 
+        , $('#imageSave').on("click", function(){
+            var imgData = _this.ctx.getImageData(
+                (_this.canvas.width - _this.editImg.width) / 2 ,
+                (_this.canvas.height - _this.editImg.height) / 2 ,
+                _this.editImg.width ,
+                _this.editImg.height);
+
+            _this.canvas.width = _this.editImg.width;
+            _this.canvas.height = _this.editImg.height;
+            _this.ctx.putImageData(imgData,0 ,0);
+
+            var dataURL = _this.canvas.toDataURL();
+            console.log(dataURL);
+            document.getElementById("sendImage").src = dataURL;
+
+            /*
+             $.ajax({
+             type: "POST",
+             url: "script.php",
+             data: {
+             imgBase64: dataURL
+             }
+             }).done(function(o) {
+             console.log('saved');
+             });
+            */
+        });
+    }
 
     , setCanvas: function(path) {
         var _this = this;
@@ -449,14 +489,23 @@ var imageEditor = {
         this.clearCanvas();
         for(var i=0; i< d.length; i+=4) {
             if( current > old ){
-                d[i] *= 1.5;
-                d[i+1] *= 1.5;
-                d[i+2] *= 1.5;
+                d[i] *= 1.2;
+                d[i+1] *= 1.2;
+                d[i+2] *= 1.2;
             } else {
-                d[i] /= 1.5;
-                d[i+1] /= 1.5;
-                d[i+2] /= 1.5;
+                d[i] /= 1.2;
+                d[i+1] /= 1.2;
+                d[i+2] /= 1.2;
             }
+            //if( current > old ){
+            //    d[i] += 45;
+            //    d[i+1] += 45;
+            //    d[i+2] += 45;
+            //} else {
+            //    d[i] -= 45;
+            //    d[i+1] -= 45;
+            //    d[i+2] -= 45;
+            //}
         }
         return imgData;
     }
@@ -495,10 +544,15 @@ var imageEditor = {
             if(type == "zoom_in"){
                 this.editImg.width += this.editImg.width * 0.1;
                 this.editImg.height +=  Math.floor( h * 0.1 );
+                $('#width').val(this.editImg.width);
+                $('#height').val(this.editImg.height);
 
             } else if(type == "zoom_out"){
                 this.editImg.width -= this.editImg.width * 0.1;
                 this.editImg.height -= Math.floor( h * 0.1 );
+                $('#width').val(this.editImg.width);
+                $('#height').val(this.editImg.height);
+
             }
         } else{
             alert("더이상 줄일 수 없습니다");
@@ -523,7 +577,7 @@ var imageEditor = {
 
         $('#imageRatio').text(Math.floor(this.zoom*100) + "%");
         $('.range_bg').css('background',"");
-        $('#brightness').val("2");
+        $('#brightness').val("3");
         $('#blur').val("0");
         $('#contrast').val("0");
         $('#sharpen').val("0");
