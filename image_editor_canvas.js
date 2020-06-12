@@ -2,14 +2,13 @@ var imageEditor = {
 
     canvas: null
     , ctx: null
-    , ctxReset: null
     , editImg: null
     , toggleBtn: false
     , zoom: 1.0
-    , slideOldVal: null
-    , drag: false
-    , toggleCrop: false
     , angleCount: 0
+    , cutWidth : 0
+    , cutHeight : 0
+    , imgInfo :{}
 
     , init: function() {
         this.canvas = $('#canvas')[0];
@@ -66,53 +65,7 @@ var imageEditor = {
             _this.setFlip("y_flip");
         });
         $('#crop').on('click', function() {
-                if(_this.angleCount % 2 == 1) {
-                    $('.select_box').css({"width":_this.editImg.height + "px","height":_this.editImg.width + "px"});
-                } else {
-                    $('.select_box').css({"width": _this.editImg.width + "px", "height": _this.editImg.height + "px"});
-                }
-                $('#imageCrop').css("display","inline-block");
-                $('.select_box').css("display","inline-block");
-
-                var offsetL = document.getElementsByClassName('select_box')[0].offsetLeft;
-                var offsetT = document.getElementsByClassName('select_box')[0].offsetTop;
-
-
-                $('#imageCrop').on('click', function(){
-                    _this.clearCanvas();
-
-                    if(_this.angleCount % 2 == 1){
-                        _this.ctx.drawImage(_this.editImg
-                            , $('.select_box')[0].offsetTop - offsetT
-                            , $('.select_box')[0].offsetLeft - offsetL
-                            , $('.select_box')[0].offsetHeight
-                            , $('.select_box')[0].offsetWidth
-                            , -$('.select_box')[0].offsetHeight / 2
-                            , -$('.select_box')[0].offsetWidth / 2
-                            , $('.select_box')[0].offsetHeight
-                            , $('.select_box')[0].offsetWidth);
-
-                        
-                        //$('#width').val =  _this.editImg.width;
-                        //$('#height').val = _this.editImg.height;
-
-                    } else {
-                        _this.ctx.drawImage(_this.editImg
-                            , $('.select_box')[0].offsetLeft - offsetL
-                            , $('.select_box')[0].offsetTop - offsetT
-                            , $('.select_box')[0].offsetWidth
-                            , $('.select_box')[0].offsetHeight
-                            , -$('.select_box')[0].offsetWidth / 2
-                            , -$('.select_box')[0].offsetHeight / 2
-                            , $('.select_box')[0].offsetWidth
-                            , $('.select_box')[0].offsetHeight);
-                    }
-                    $('#imageCrop').css("display","none");
-                    $('.select_box').css("display","none");
-                    //$('#width').val =  _this.editImg.width;
-                    //$('#height').val = _this.editImg.height;
-                });
-
+            _this.crop();
         });
 
         $('#sharpen').on('input', function() {
@@ -159,16 +112,6 @@ var imageEditor = {
 
         var el = document.querySelector(".select_box");
         var isResizing = false;
-        var targetImg = {
-            minWidth : 50,
-            minHeight : 50,
-            maxWidth : 390, //parseInt($('#width').val(),10),
-            maxHeight : 264, //parseInt($('#height').val(),10),
-            left : 385,//$('.select_box')[0].offsetLeft,
-            top : 330,//$('.select_box')[0].offsetTop,
-            right : 775,//$('.select_box')[0].offsetLeft + $('.select_box').width(),
-            bottom : 594//$('.select_box')[0].offsetTop + $('.select_box').height()
-        }
 
         el.addEventListener('mousedown', mousedown);
 
@@ -189,25 +132,41 @@ var imageEditor = {
                     el.style.left = rect.left - (prevX - e.offsetX) + "px";
                     el.style.top = rect.top - (prevY - e.offsetY) + "px";
 
-                    if(el.offsetLeft < targetImg.left) {
-                        el.style.left = targetImg.left + "px";
-                    }
-                    if(el.offsetTop < targetImg.top) {
-                        el.style.top = targetImg.top + "px";
-                    }
-                    if(el.offsetLeft +  $(el).width() > targetImg.right) {
-                        el.style.left = targetImg.left + (targetImg.maxWidth - $(el).width()) + "px"
-                    }
-                    if(el.offsetTop +  $(el).height() > targetImg.bottom) {
-                        el.style.top = targetImg.top + (targetImg.maxHeight - $(el).height()) + "px";
+                    if(this.angleCount % 2 == 1) {
+                        if(el.offsetLeft < _this.imgInfo.left) {
+                            el.style.left = _this.imgInfo.left + "px";
+                        }
+                        if(el.offsetTop < _this.imgInfo.top) {
+                            el.style.top = _this.imgInfo.top + "px";
+                        }
+                        if(el.offsetLeft +  $(el).height() > _this.imgInfo.right) {
+                            el.style.left = _this.imgInfo.left + (_this.imgInfo.maxHeight - $(el).height()) + "px"
+                        }
+                        if(el.offsetTop +  $(el).width() > _this.imgInfo.bottom) {
+                            el.style.top = _this.imgInfo.top + (_this.imgInfo.maxWidth - $(el).width()) + "px";
+                        }
+                    } else {
+                        if(el.offsetLeft < _this.imgInfo.left) {
+                            el.style.left = _this.imgInfo.left + "px";
+                        }
+                        if(el.offsetTop < _this.imgInfo.top) {
+                            el.style.top = _this.imgInfo.top + "px";
+                        }
+                        if(el.offsetLeft +  $(el).width() > _this.imgInfo.right) {
+                            el.style.left = _this.imgInfo.left + (_this.imgInfo.maxWidth - $(el).width()) + "px"
+                        }
+                        if(el.offsetTop +  $(el).height() > _this.imgInfo.bottom) {
+                            el.style.top = _this.imgInfo.top + (_this.imgInfo.maxHeight - $(el).height()) + "px";
+                        }
                     }
                 }
+                _this.cutWidth = rect.width;
+                _this.cutHeight = rect.height;
             }
             function mouseup() {
                 el.removeEventListener("mousemove",mousemove);
                 el.removeEventListener("mouseup",mouseup);
             }
-
         }
 
         var resizers = document.querySelectorAll(".resizer");
@@ -231,66 +190,66 @@ var imageEditor = {
                     var rect = el.getBoundingClientRect();
                     //console.log(rect);
 
-
-
                     if(currentResizer.classList.contains("bottom-right")) {
                         var w = rect.width - (prevX - e.offsetX);
                         var h = rect.height - (prevY - e.offsetY);
-                        if(w > targetImg.minWidth && w < targetImg.maxWidth - ( rect.left - targetImg.left)) {
+
+                        if(w > _this.imgInfo.minWidth && w < _this.imgInfo.maxWidth - ( rect.left - _this.imgInfo.left)) {
                             el.style.width = w + "px";
                         }
-                        if(h > targetImg.minHeight && h < targetImg.maxHeight - ( rect.top - targetImg.top )) {
+                        if(h > _this.imgInfo.minHeight && h < _this.imgInfo.maxHeight - ( rect.top - _this.imgInfo.top )) {
                             el.style.height = h + "px";
                         }
-                        if(rect.left > targetImg.left){
+                        if(rect.left > _this.imgInfo.left){
                             el.style.left = rect.left + "px";
                         }
-                        if(rect.top > targetImg.top){
+                        if(rect.top > _this.imgInfo.top){
                             el.style.top = rect.top + "px";
                         }
+
                     } else if (currentResizer.classList.contains("bottom-left")) {
                         var w = rect.width + (prevX - e.offsetX);
                         var h = rect.height - (prevY - e.offsetY);
-                        if(w > targetImg.minWidth && w < targetImg.maxWidth - ( targetImg.right - rect.right)) {
+                        if(w > _this.imgInfo.minWidth && w < _this.imgInfo.maxWidth - ( _this.imgInfo.right - rect.right)) {
                             el.style.width = w + "px";
                         }
-                        if(h > targetImg.minHeight && h < targetImg.maxHeight - ( rect.top - targetImg.top )) {
+                        if(h > _this.imgInfo.minHeight && h < _this.imgInfo.maxHeight - ( rect.top - _this.imgInfo.top )) {
                             el.style.height = h + "px";
                         }
-                        if(rect.top > targetImg.top){
+                        if(rect.top > _this.imgInfo.top){
                             el.style.top = rect.top + "px";
                         }
-                        if(rect.left > targetImg.left) {
+                        if(rect.left > _this.imgInfo.left) {
                             el.style.left = rect.left - (prevX - e.offsetX) + "px";
                         }
                     } else if (currentResizer.classList.contains("top-right")) {
                         var w = rect.width  - (prevX - e.offsetX);
                         var h = rect.height + (prevY - e.offsetY);
-                        if(w > targetImg.minWidth && w < targetImg.maxWidth - ( rect.left - targetImg.left)) {
+                        if(w > _this.imgInfo.minWidth && w < _this.imgInfo.maxWidth - ( rect.left - _this.imgInfo.left)) {
                             el.style.width = w + "px";
                         }
-                        if(h > targetImg.minHeight && h < targetImg.maxHeight - ( targetImg.bottom - rect.bottom )) {
+                        if(h > _this.imgInfo.minHeight && h < _this.imgInfo.maxHeight - ( _this.imgInfo.bottom - rect.bottom )) {
                             el.style.height = h + "px";
                         }
-                        if(rect.top > targetImg.top) {
+                        if(rect.top > _this.imgInfo.top) {
                             el.style.top = rect.y - (prevY - e.offsetY) + "px";
                         }
-                        if(rect.left > targetImg.left){
+                        if(rect.left > _this.imgInfo.left){
                             el.style.left = rect.left + "px";
                         }
                     } else if (currentResizer.classList.contains("top-left")) {
                         var w = rect.width + (prevX - e.offsetX);
                         var h = rect.height + (prevY - e.offsetY);
-                        if(w > targetImg.minWidth && w < targetImg.maxWidth - ( targetImg.right - rect.right )) {
+                        if(w > _this.imgInfo.minWidth && w < _this.imgInfo.maxWidth - ( _this.imgInfo.right - rect.right )) {
                             el.style.width = w + "px";
                         }
-                        if(h > targetImg.minHeight && h < targetImg.maxHeight - ( targetImg.bottom - rect.bottom )) {
+                        if(h > _this.imgInfo.minHeight && h < _this.imgInfo.maxHeight - ( _this.imgInfo.bottom - rect.bottom )) {
                             el.style.height = h + "px";
                         }
-                        if(rect.top > targetImg.top) {
+                        if(rect.top > _this.imgInfo.top) {
                             el.style.top = rect.top - (prevY - e.offsetY) + "px";
                         }
-                        if(rect.left > targetImg.left){
+                        if(rect.left > _this.imgInfo.left){
                             el.style.left = rect.left - (prevX - e.offsetX) + "px";
                         }
                     }
@@ -306,14 +265,26 @@ var imageEditor = {
         })
 
         , $('#imageSave').on("click", function(){
-            var imgData = _this.ctx.getImageData(
-                (_this.canvas.width - _this.editImg.width) / 2 ,
-                (_this.canvas.height - _this.editImg.height) / 2 ,
-                _this.editImg.width ,
-                _this.editImg.height);
+            if(_this.angleCount % 2 == 1){
+                var imgData = _this.ctx.getImageData(
+                    (_this.canvas.width - _this.editImg.height) / 2 ,
+                    (_this.canvas.height - _this.editImg.width) / 2 ,
+                    _this.editImg.height ,
+                    _this.editImg.width);
 
-            _this.canvas.width = _this.editImg.width;
-            _this.canvas.height = _this.editImg.height;
+                _this.canvas.width = _this.editImg.height;
+                _this.canvas.height = _this.editImg.width;
+
+            } else {
+                var imgData = _this.ctx.getImageData(
+                    (_this.canvas.width - _this.editImg.width) / 2 ,
+                    (_this.canvas.height - _this.editImg.height) / 2 ,
+                    _this.editImg.width ,
+                    _this.editImg.height);
+
+                _this.canvas.width = _this.editImg.width;
+                _this.canvas.height = _this.editImg.height;
+            }
             _this.ctx.putImageData(imgData,0 ,0);
 
             var dataURL = _this.canvas.toDataURL();
@@ -353,6 +324,14 @@ var imageEditor = {
         var h = $('#height').val();
         var ratio_h = Math.round( w * ( this.editImg.naturalHeight / this.editImg.naturalWidth ) );
 
+       /* var imgData = this.ctx.getImageData(
+            (this.canvas.width - this.editImg.width) / 2 ,
+            (this.canvas.height - this.editImg.height) / 2 ,
+            w ,
+            h );
+
+        console.log(imgData);
+        */
         this.clearCanvas();
         this.editImg.width = w;
         this.editImg.height = h;
@@ -373,6 +352,8 @@ var imageEditor = {
             return ;
         }
 
+        //this.ctx.putImageData(imgData, (this.canvas.width - this.editImg.width) / 2 , (this.canvas.height - this.editImg.height) / 2);
+        //this.ctx.scale(1.5 ,1);
         this.ctx.drawImage(this.editImg, -this.editImg.width / 2, -this.editImg.height / 2 , this.editImg.width, this.editImg.height);
 
     }
@@ -409,6 +390,7 @@ var imageEditor = {
 
     , setFlip: function(type) {
         this.clearCanvas();
+
         if(type == "x_flip"){
             this.ctx.scale(-1,1);
             this.ctx.drawImage(this.editImg, -this.editImg.width / 2, -this.editImg.height / 2, this.editImg.width, this.editImg.height);
@@ -418,14 +400,65 @@ var imageEditor = {
         }
     }
 
-    , setTransform: function() {
-    }
-
-    , getTransform: function(property) {
-    }
-
     , crop: function(){
+        var _this = this;
+        if(this.angleCount % 2 == 1) {
+            $('.select_box').css({"width":this.editImg.height + "px","height":this.editImg.width + "px"});
+        } else {
+            $('.select_box').css({"width": this.editImg.width + "px", "height": this.editImg.height + "px"});
+        }
+        $('#imageCrop').css("display","inline-block");
+        $('.select_box').css("display","inline-block");
 
+        if(_this.angleCount % 2 == 1){
+            this.imgInfo.maxWidth = parseInt($('#height').val(),10);
+            this.imgInfo.maxHeight = parseInt($('#width').val(),10);
+        } else {
+            this.imgInfo.maxWidth = parseInt($('#width').val(),10);
+            this.imgInfo.maxHeight = parseInt($('#height').val(),10);
+        }
+        this.imgInfo.minWidth = 50;
+        this.imgInfo.minHeight = 50;
+        this.imgInfo.left = $('.select_box')[0].offsetLeft;
+        this.imgInfo.top = $('.select_box')[0].offsetTop;
+        this.imgInfo.right = $('.select_box')[0].offsetLeft + $('.select_box').width();
+        this.imgInfo.bottom = $('.select_box')[0].offsetTop + $('.select_box').height();
+
+        $('#imageCrop').on('click', function(){
+            _this.clearCanvas();
+
+            if(_this.angleCount % 2 == 1){
+
+                _this.ctx.drawImage(_this.editImg
+                    , $('.select_box')[0].offsetTop - _this.imgInfo.top
+                    , $('.select_box')[0].offsetLeft - _this.imgInfo.left
+                    , $('.select_box')[0].offsetHeight
+                    , $('.select_box')[0].offsetWidth
+                    , -$('.select_box')[0].offsetHeight / 2
+                    , -$('.select_box')[0].offsetWidth / 2
+                    , $('.select_box')[0].offsetHeight
+                    , $('.select_box')[0].offsetWidth);
+            } else {
+                _this.ctx.drawImage(_this.editImg
+                    , $('.select_box')[0].offsetLeft - _this.imgInfo.left
+                    , $('.select_box')[0].offsetTop - _this.imgInfo.top
+                    , $('.select_box')[0].offsetWidth
+                    , $('.select_box')[0].offsetHeight
+                    , -$('.select_box')[0].offsetWidth / 2
+                    , -$('.select_box')[0].offsetHeight / 2
+                    , $('.select_box')[0].offsetWidth
+                    , $('.select_box')[0].offsetHeight);
+            }
+
+            $('#imageCrop').css("display","none");
+            $('.select_box').css("display","none");
+
+            _this.editImg.width = _this.cutWidth;
+            _this.editImg.height = _this.cutHeight;
+
+            $('#width').val(_this.cutWidth);
+            $('#height').val(_this.cutHeight);
+        });
     }
 
     , convolution: function(imgData, weights, opaque) {
@@ -571,6 +604,9 @@ var imageEditor = {
 
         $('#width').val(this.editImg.naturalWidth);
         $('#height').val(this.editImg.naturalHeight);
+
+        //this.canvas.width = this.editImg.width;
+        //this.canvas.height = this.editImg.height;
 
         this.toggleBtn = false;
         $('#apply input').attr('disabled', this.toggleBtn);
