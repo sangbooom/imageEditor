@@ -9,13 +9,75 @@ var imageEditor = {
     , cutWidth : 0
     , cutHeight : 0
     , imgInfo :{}
+    , dataURL : null
+
+    , imgW: 0
+    , imgH: 0
 
     , init: function() {
         this.canvas = $('#canvas')[0];
         this.ctx = this.canvas.getContext('2d');
         this.editImg = new Image();
 
-        this.setCanvas('../img/facility_3.png');
+        this.loadImage('../img/facility_3.png');
+    }
+
+    , loadImage: function(path) {
+        var _this = this;
+
+        $(_this.editImg).on('load', function(){
+            _this.imgW = _this.editImg.width;
+            _this.imgH = _this.editImg.height;
+            $('#canvas').attr('width', _this.imgW);
+            $('#canvas').attr('height', _this.imgH);
+            _this.ctx.drawImage(_this.editImg, 0, 0);
+            $('#width').val(_this.imgW);
+            $('#height').val(_this.imgH);
+            $(_this.editImg).off('load');
+
+            _this.registEvent();
+        });
+        _this.editImg.src = path;
+    }
+
+    , drawImage: function(type, dir) {
+        var _this = this;
+        var img = new Image();
+        img.src = this.canvas.toDataURL();
+        $(img).on('load', function() {
+            var w = $('#width').val();
+            var h = $('#height').val();
+
+            switch(type) {
+                case "resize":
+                    $('#canvas').attr('width', w);
+                    $('#canvas').attr('height', h);
+                    _this.ctx.drawImage(img, 0, 0, w, h);
+                    break;
+
+                case "rotation":
+                    $('#canvas').attr('width', w);
+                    $('#canvas').attr('height', h);
+                    _this.ctx.translate(w / 2, h / 2);
+                    if(dir == "left") {
+                        _this.ctx.rotate(-Math.PI / 2);
+                    } else {
+                        _this.ctx.rotate(Math.PI / 2);
+                    }
+
+                    _this.ctx.drawImage(img, -h / 2, -w / 2, h, w);
+                    break;
+
+                case "flip":
+                    _this.ctx.scale(-1,1);
+                    console.log("1");
+                    _this.drawImage(img,-w,0,w,h);
+                    break;
+            }
+
+            $(img).off('load');
+        });
+
     }
 
     , registEvent: function() {
@@ -75,14 +137,18 @@ var imageEditor = {
             _this.ctx.putImageData(filteredData, 0 , 0);
         });
 
-        $('#brightness').each(function(){
-           var inputVal = $(this).val();
-            $(this).on('change', function() {
-                console.log('Current Value: ',$(this).val());
-                console.log('Old Value: ', inputVal);
-                _this.setFilterBright($(this).val(), inputVal);
-                inputVal = $(this).val();
-            })
+        //$('#brightness').each(function(){
+        //   var inputVal = $(this).val();
+        //    $(this).on('change', function() {
+        //        console.log('Current Value: ',$(this).val());
+        //        console.log('Old Value: ', inputVal);
+        //        _this.setFilterBright($(this).val(), inputVal);
+        //        inputVal = $(this).val();
+        //    })
+        //});
+
+        $('#brightness').on('input',function(){
+            _this.setFilterBright();
         });
 
         $('#blur').on('input', function(){
@@ -160,8 +226,8 @@ var imageEditor = {
                         }
                     }
                 }
-                _this.cutWidth = rect.width;
-                _this.cutHeight = rect.height;
+                //_this.cutWidth = rect.width;
+                //_this.cutHeight = rect.height;
             }
             function mouseup() {
                 el.removeEventListener("mousemove",mousemove);
@@ -252,6 +318,19 @@ var imageEditor = {
                         if(rect.left > _this.imgInfo.left){
                             el.style.left = rect.left - (prevX - e.offsetX) + "px";
                         }
+                        //if(w == _this.imgInfo.minWidth){
+                        //    console.log("1212");
+                        //    el.style.top = rect.top - (prevY - e.offsetY) + "px";
+                        //}
+
+                        if(rect.top + rect.height > _this.imgInfo.bottom){
+                            console.log("b");
+                            el.style.top = 545 + (prevY - e.offsetY) + "px";
+                        }
+                        if(rect.left + rect.width > _this.imgInfo.right){
+                            console.log("r");
+                            el.style.left = 720 + (prevX - e.offsetX) + "px";
+                        }
                     }
 
                 }
@@ -265,31 +344,38 @@ var imageEditor = {
         })
 
         , $('#imageSave').on("click", function(){
+            _this.cutWidth = parseInt($('#width').val(),10);
+            _this.cutHeight = parseInt($('#height').val(),10);
+
             if(_this.angleCount % 2 == 1){
                 var imgData = _this.ctx.getImageData(
-                    (_this.canvas.width - _this.editImg.height) / 2 ,
-                    (_this.canvas.height - _this.editImg.width) / 2 ,
+                    (_this.canvas.width - _this.cutWidth) / 2 ,
+                    (_this.canvas.height - _this.cutHeight) / 2 ,
                     _this.editImg.height ,
                     _this.editImg.width);
 
-                _this.canvas.width = _this.editImg.height;
-                _this.canvas.height = _this.editImg.width;
+                _this.canvas.width = _this.cutWidth;
+                _this.canvas.height = _this.cutHeight;
 
             } else {
                 var imgData = _this.ctx.getImageData(
-                    (_this.canvas.width - _this.editImg.width) / 2 ,
-                    (_this.canvas.height - _this.editImg.height) / 2 ,
+                    (_this.canvas.width - _this.cutWidth) / 2 ,
+                    (_this.canvas.height - _this.cutHeight) / 2 ,
                     _this.editImg.width ,
                     _this.editImg.height);
 
-                _this.canvas.width = _this.editImg.width;
-                _this.canvas.height = _this.editImg.height;
+                _this.canvas.width = _this.cutWidth;
+                _this.canvas.height = _this.cutHeight;
             }
+
+            $('#imageCrop').css("display","none");
+            $('.select_box').css("display","none");
+
             _this.ctx.putImageData(imgData,0 ,0);
 
-            var dataURL = _this.canvas.toDataURL();
-            console.log(dataURL);
-            document.getElementById("sendImage").src = dataURL;
+            _this.dataURL = _this.canvas.toDataURL();
+            console.log(_this.dataURL);
+            document.getElementById("sendImage").src = _this.dataURL;
 
             /*
              $.ajax({
@@ -305,21 +391,13 @@ var imageEditor = {
         });
     }
 
-    , setCanvas: function(path) {
-        var _this = this;
-        _this.editImg.src = path;
-
-        _this.editImg.onload = function(){
-            _this.ctx.translate(_this.canvas.width / 2 , _this.canvas.height / 2 );
-            _this.ctx.drawImage(_this.editImg, -_this.editImg.width / 2, -_this.editImg.height / 2);
-            $('#width').val(_this.editImg.width);
-            $('#height').val(_this.editImg.height);
-
-            _this.registEvent();
-        };
-    }
-
     , reSize: function(type) {
+        this.drawImage("resize");
+        return;
+
+
+
+
         var w = $('#width').val();
         var h = $('#height').val();
         var ratio_h = Math.round( w * ( this.editImg.naturalHeight / this.editImg.naturalWidth ) );
@@ -364,6 +442,8 @@ var imageEditor = {
     }
 
     , clearCanvas: function() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        return;
         if(this.angleCount % 2 == 1){
             this.ctx.clearRect(-this.canvas.height/2, -this.canvas.width/2, this.canvas.height, this.canvas.width);
         } else {
@@ -371,7 +451,17 @@ var imageEditor = {
         }
     }
 
-    , setRotation: function(type) { // 좌우측 로테이션
+    , setRotation: function(dir) { // 좌우측 로테이션
+        var w = $('#width').val();
+        var h = $('#height').val();
+
+        $('#width').val(h);
+        $('#height').val(w);
+        this.drawImage("rotation", dir);
+
+
+        return;
+
         var w = this.editImg.width;
         var h = this.editImg.height;
 
@@ -388,7 +478,11 @@ var imageEditor = {
     }
 
 
-    , setFlip: function(type) {
+    , setFlip: function(dir) {
+        this.drawImage("flip", dir);
+
+        return;
+
         this.clearCanvas();
 
         if(type == "x_flip"){
@@ -403,12 +497,20 @@ var imageEditor = {
     , crop: function(){
         var _this = this;
         if(this.angleCount % 2 == 1) {
-            $('.select_box').css({"width":this.editImg.height + "px","height":this.editImg.width + "px"});
+            $('.select_box').css({
+                "width": parseInt($('#height').val(),10) + "px",
+                "height": parseInt($('#width').val(),10)+ "px",
+                "display": "inline-block"
+            });
         } else {
-            $('.select_box').css({"width": this.editImg.width + "px", "height": this.editImg.height + "px"});
+            $('.select_box').css({
+                "width": parseInt($('#width').val(),10) + "px",
+                "height": parseInt($('#height').val(),10) + "px",
+                "display": "inline-block"
+            });
         }
+
         $('#imageCrop').css("display","inline-block");
-        $('.select_box').css("display","inline-block");
 
         if(_this.angleCount % 2 == 1){
             this.imgInfo.maxWidth = parseInt($('#height').val(),10);
@@ -417,17 +519,41 @@ var imageEditor = {
             this.imgInfo.maxWidth = parseInt($('#width').val(),10);
             this.imgInfo.maxHeight = parseInt($('#height').val(),10);
         }
+
         this.imgInfo.minWidth = 50;
         this.imgInfo.minHeight = 50;
-        this.imgInfo.left = $('.select_box')[0].offsetLeft;
-        this.imgInfo.top = $('.select_box')[0].offsetTop;
+        this.imgInfo.left = $('.select_box')[0].offsetLeft; //(1160 - $('.select_box')[0].offsetWidth) / 2;
+        this.imgInfo.top = $('.select_box')[0].offsetTop; //(792 - $('.select_box')[0].offsetHeight) / 2;
         this.imgInfo.right = $('.select_box')[0].offsetLeft + $('.select_box').width();
         this.imgInfo.bottom = $('.select_box')[0].offsetTop + $('.select_box').height();
 
         $('#imageCrop').on('click', function(){
+            ///
+            var x = $('.select_box').offset().left - $('#canvas').offset().left;
+            var y = $('.select_box').offset().top - $('#canvas').offset().top;
+            var w = $('.select_box').width();
+            var h = $('.select_box').height();
+
+            console.log("x: " + x + "/ y: " + y);
+
+
+            var currentImageData = _this.ctx.getImageData(x, y, w, h);
+            _this.clearCanvas();
+            _this.ctx.putImageData(currentImageData, (_this.canvas.width - w) / 2, (_this.canvas.height - h) / 2);
+            $('#select_box').css("left", (_this.canvas.width - w) / 2 + "px");
+            $('#select_box').css("top", (_this.canvas.height - h) / 2 + "px");
+
+
+
+            /*
             _this.clearCanvas();
 
             if(_this.angleCount % 2 == 1){
+                _this.cutWidth = $('.select_box')[0].offsetWidth;
+                _this.cutHeight = $('.select_box')[0].offsetHeight;
+
+                $('#width').val(_this.cutHeight);
+                $('#height').val(_this.cutWidth);
 
                 _this.ctx.drawImage(_this.editImg
                     , $('.select_box')[0].offsetTop - _this.imgInfo.top
@@ -439,6 +565,12 @@ var imageEditor = {
                     , $('.select_box')[0].offsetHeight
                     , $('.select_box')[0].offsetWidth);
             } else {
+                _this.cutWidth = $('.select_box')[0].offsetWidth;
+                _this.cutHeight = $('.select_box')[0].offsetHeight;
+
+                $('#width').val(_this.cutWidth);
+                $('#height').val(_this.cutHeight);
+
                 _this.ctx.drawImage(_this.editImg
                     , $('.select_box')[0].offsetLeft - _this.imgInfo.left
                     , $('.select_box')[0].offsetTop - _this.imgInfo.top
@@ -448,16 +580,11 @@ var imageEditor = {
                     , -$('.select_box')[0].offsetHeight / 2
                     , $('.select_box')[0].offsetWidth
                     , $('.select_box')[0].offsetHeight);
-            }
+                    */
+            //}
 
-            $('#imageCrop').css("display","none");
-            $('.select_box').css("display","none");
-
-            _this.editImg.width = _this.cutWidth;
-            _this.editImg.height = _this.cutHeight;
-
-            $('#width').val(_this.cutWidth);
-            $('#height').val(_this.cutHeight);
+            //$('#imageCrop').css("display","none");
+            //$('.select_box').css("display","none");
         });
     }
 
@@ -517,28 +644,14 @@ var imageEditor = {
     }
 
 
-    , getFilterBright: function (imgData, value, current, old) {
+    , getFilterBright: function (imgData) {
         var d = imgData.data;
         this.clearCanvas();
+        var value = (parseInt($('#brightness').val(),10) * 30);
         for(var i=0; i< d.length; i+=4) {
-            if( current > old ){
-                d[i] *= 1.2;
-                d[i+1] *= 1.2;
-                d[i+2] *= 1.2;
-            } else {
-                d[i] /= 1.2;
-                d[i+1] /= 1.2;
-                d[i+2] /= 1.2;
-            }
-            //if( current > old ){
-            //    d[i] += 45;
-            //    d[i+1] += 45;
-            //    d[i+2] += 45;
-            //} else {
-            //    d[i] -= 45;
-            //    d[i+1] -= 45;
-            //    d[i+2] -= 45;
-            //}
+                d[i] += value;
+                d[i+1] += value;
+                d[i+2] += value;
         }
         return imgData;
     }
@@ -570,21 +683,40 @@ var imageEditor = {
     }
 
     , Zoom: function (type) {
+        /*
+        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        console.log("1123123123")
+
+
+
+        this.ctx.scale(2, 2);
         this.clearCanvas();
+        this.ctx.putImageData(imgData, 0, 0);
+
+
+        return;
+        */
         var h = Math.round( this.editImg.width * ( this.editImg.height / this.editImg.width ));
 
         if(this.zoom >= 0.1){
             if(type == "zoom_in"){
+                this.ctx.scale(1.1,1.1);
+                /*
                 this.editImg.width += this.editImg.width * 0.1;
                 this.editImg.height +=  Math.floor( h * 0.1 );
                 $('#width').val(this.editImg.width);
                 $('#height').val(this.editImg.height);
+                */
 
             } else if(type == "zoom_out"){
+
+                this.ctx.scale(0.9,0.9);
+                /*
                 this.editImg.width -= this.editImg.width * 0.1;
                 this.editImg.height -= Math.floor( h * 0.1 );
                 $('#width').val(this.editImg.width);
                 $('#height').val(this.editImg.height);
+                */
 
             }
         } else{
