@@ -4,8 +4,8 @@ var imageEditor = {
     , ctx: null
     , editImg: null
     , toggleBtn: false
-    , zoom: 1.0
     , angleCount: 0
+    , magnification : 100
     , cutWidth : 0
     , cutHeight : 0
     , imgInfo :{}
@@ -69,15 +69,33 @@ var imageEditor = {
                     break;
 
                 case "flip":
-                    _this.ctx.scale(-1,1);
-                    console.log("1");
-                    _this.drawImage(img,-w,0,w,h);
+                    _this.clearCanvas();
+                    if(dir == "x_flip"){
+                        _this.ctx.setTransform(-1,0,0,1,0,0);
+                        _this.ctx.drawImage(img, -img.width, 0, w, h);
+                    } else {
+                        _this.ctx.setTransform(1,0,0,-1,0,0);
+                        _this.ctx.drawImage(img, 0, -img.height, w, h);
+                    }
+                    break;
+
+                case "zoom":
+                    _this.clearCanvas();
+                    if(dir == "zoom_in"){
+                        _this.ctx.setTransform(1.1,0,0,1.1,0,0);
+                        _this.ctx.drawImage(img, 0, 0, w, h);
+                        $('#imageRatio').text( (_this.magnification += 10) + "%") ;
+                    } else {
+                        console.log("out");
+                        _this.ctx.setTransform(0.9,0,0,0.9,0,0);
+                        _this.ctx.drawImage(img, 0, 0, w, h);
+                        $('#imageRatio').text( (_this.magnification-=10) + "%");
+                    }
                     break;
             }
 
             $(img).off('load');
         });
-
     }
 
     , registEvent: function() {
@@ -107,7 +125,7 @@ var imageEditor = {
             if(key.keyCode == "13") _this.reSize();
         });
 
-        $('#toggle').on('click', function(){
+        $('#toggle').on('click', function() {
             _this.onToggle();
         });
 
@@ -126,6 +144,7 @@ var imageEditor = {
         $('#y_flip').on('click', function() {
             _this.setFlip("y_flip");
         });
+
         $('#crop').on('click', function() {
             _this.crop();
         });
@@ -151,6 +170,15 @@ var imageEditor = {
             _this.setFilterBright();
         });
 
+        $('#plus').on('click',function(){
+            _this.setFilterBright("plus");
+        });
+
+        $('#minus').on('click',function(){
+            _this.setFilterBright("minus");
+        });
+
+
         $('#blur').on('input', function(){
             var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
             var filteredData = _this.setFilterBlur(imgData, 90);
@@ -158,18 +186,18 @@ var imageEditor = {
             _this.ctx.putImageData(filteredData, 0 , 0);
         });
 
+
+
         $('#contrast').on('click', function(){
            _this.setFilterContrast();
         });
 
         $('#zoom_in').on('click', function () {
-            _this.zoom = ((_this.zoom*10)+1)/10;
-            _this.Zoom("zoom_in");
+            _this.zoom("zoom_in");
         });
 
         $('#zoom_out').on('click', function () {
-            _this.zoom = ((_this.zoom*10)-1)/10;
-            _this.Zoom("zoom_out");
+            _this.zoom("zoom_out");
         });
 
         $('#imageReturn').on('click', function() {
@@ -395,9 +423,6 @@ var imageEditor = {
         this.drawImage("resize");
         return;
 
-
-
-
         var w = $('#width').val();
         var h = $('#height').val();
         var ratio_h = Math.round( w * ( this.editImg.naturalHeight / this.editImg.naturalWidth ) );
@@ -479,6 +504,7 @@ var imageEditor = {
 
 
     , setFlip: function(dir) {
+
         this.drawImage("flip", dir);
 
         return;
@@ -528,7 +554,6 @@ var imageEditor = {
         this.imgInfo.bottom = $('.select_box')[0].offsetTop + $('.select_box').height();
 
         $('#imageCrop').on('click', function(){
-            ///
             var x = $('.select_box').offset().left - $('#canvas').offset().left;
             var y = $('.select_box').offset().top - $('#canvas').offset().top;
             var w = $('.select_box').width();
@@ -644,21 +669,38 @@ var imageEditor = {
     }
 
 
-    , getFilterBright: function (imgData) {
+    , getFilterBright: function (imgData, value, type) {
         var d = imgData.data;
         this.clearCanvas();
+        if( type == "plus") {
+            console.log("1");
+            for (var i = 0; i < d.length; i += 4) {
+                d[i] += value / 3;
+                d[i + 1] += value / 3;
+                d[i + 2] += value / 3;
+            }
+        } else {
+            console.log("2");
+            for(var i=0; i< d.length; i+=4) {
+                d[i] -= value/3;
+                d[i+1] -= value/3;
+                d[i+2] -= value/3;
+            }
+        }
+
+        /*
         var value = (parseInt($('#brightness').val(),10) * 30);
         for(var i=0; i< d.length; i+=4) {
-                d[i] += value;
-                d[i+1] += value;
-                d[i+2] += value;
-        }
+                d[i] -= value;
+                d[i+1] -= value;
+                d[i+2] -= value;
+        }*/
         return imgData;
     }
 
-    , setFilterBright: function (current, old) {
+    , setFilterBright: function (type) {
         var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        var filteredData = this.getFilterBright(imgData, parseInt($('#brightness').val(),10) , current , old);
+        var filteredData = this.getFilterBright(imgData, 100 , type);
         this.ctx.putImageData(filteredData, 0, 0);
     }
 
@@ -682,20 +724,11 @@ var imageEditor = {
         this.ctx.putImageData(filteredData, 0, 0);
     }
 
-    , Zoom: function (type) {
-        /*
-        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        console.log("1123123123")
+    , zoom: function (dir) {
+        this.drawImage("zoom",dir);
 
+        return ;
 
-
-        this.ctx.scale(2, 2);
-        this.clearCanvas();
-        this.ctx.putImageData(imgData, 0, 0);
-
-
-        return;
-        */
         var h = Math.round( this.editImg.width * ( this.editImg.height / this.editImg.width ));
 
         if(this.zoom >= 0.1){
@@ -709,7 +742,6 @@ var imageEditor = {
                 */
 
             } else if(type == "zoom_out"){
-
                 this.ctx.scale(0.9,0.9);
                 /*
                 this.editImg.width -= this.editImg.width * 0.1;
@@ -717,7 +749,6 @@ var imageEditor = {
                 $('#width').val(this.editImg.width);
                 $('#height').val(this.editImg.height);
                 */
-
             }
         } else{
             alert("더이상 줄일 수 없습니다");
