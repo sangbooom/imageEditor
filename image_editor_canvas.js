@@ -10,6 +10,10 @@ var imageEditor = {
     , cutHeight : 0
     , imgInfo :{}
     , dataURL : null
+    , mouseMoveType: null
+    , boundInfo: null
+    , prevX: 0
+    , prevY: 0
 
     , imgW: 0
     , imgH: 0
@@ -86,10 +90,9 @@ var imageEditor = {
                         _this.ctx.drawImage(img, 0, 0, w, h);
                         $('#imageRatio').text( (_this.magnification += 10) + "%") ;
                     } else {
-                        console.log("out");
                         _this.ctx.setTransform(0.9,0,0,0.9,0,0);
                         _this.ctx.drawImage(img, 0, 0, w, h);
-                        $('#imageRatio').text( (_this.magnification-=10) + "%");
+                        $('#imageRatio').text( (_this.magnification -= 10) + "%");
                     }
                     break;
             }
@@ -207,67 +210,30 @@ var imageEditor = {
         var el = document.querySelector(".select_box");
         var isResizing = false;
 
-        el.addEventListener('mousedown', mousedown);
+        $('.select_box').on('mousedown', function(e) {
+            _this.boundInfo = {l: 385, t: 330, r: 770, b: 594};
+            _this.prevX = e.clientX;
+            _this.prevY = e.clientY;
 
-        function mousedown(e) {
-            //if(isResizing) {
-            //   return;
-            //}
-
-            el.addEventListener('mousemove',mousemove);
-            el.addEventListener('mouseup',mouseup);
-
-            var prevX = e.offsetX;
-            var prevY = e.offsetY;
-
-            function mousemove(e){
-                if(!isResizing) {
-                    var rect = el.getBoundingClientRect();
-                    el.style.left = rect.left - (prevX - e.offsetX) + "px";
-                    el.style.top = rect.top - (prevY - e.offsetY) + "px";
-
-                    if(this.angleCount % 2 == 1) {
-                        if(el.offsetLeft < _this.imgInfo.left) {
-                            el.style.left = _this.imgInfo.left + "px";
-                        }
-                        if(el.offsetTop < _this.imgInfo.top) {
-                            el.style.top = _this.imgInfo.top + "px";
-                        }
-                        if(el.offsetLeft +  $(el).height() > _this.imgInfo.right) {
-                            el.style.left = _this.imgInfo.left + (_this.imgInfo.maxHeight - $(el).height()) + "px"
-                        }
-                        if(el.offsetTop +  $(el).width() > _this.imgInfo.bottom) {
-                            el.style.top = _this.imgInfo.top + (_this.imgInfo.maxWidth - $(el).width()) + "px";
-                        }
-                    } else {
-                        if(el.offsetLeft < _this.imgInfo.left) {
-                            el.style.left = _this.imgInfo.left + "px";
-                        }
-                        if(el.offsetTop < _this.imgInfo.top) {
-                            el.style.top = _this.imgInfo.top + "px";
-                        }
-                        if(el.offsetLeft +  $(el).width() > _this.imgInfo.right) {
-                            el.style.left = _this.imgInfo.left + (_this.imgInfo.maxWidth - $(el).width()) + "px"
-                        }
-                        if(el.offsetTop +  $(el).height() > _this.imgInfo.bottom) {
-                            el.style.top = _this.imgInfo.top + (_this.imgInfo.maxHeight - $(el).height()) + "px";
-                        }
-                    }
-                }
-                //_this.cutWidth = rect.width;
-                //_this.cutHeight = rect.height;
+            if($(e.target).hasClass("select_box")) {
+                _this.mouseMoveType = "move";
+            } else {
+                _this.mouseMoveType = "crop";
             }
-            function mouseup() {
-                el.removeEventListener("mousemove",mousemove);
-                el.removeEventListener("mouseup",mouseup);
-            }
-        }
+
+            $(window).on('mousemove', {target: e.target, prevX: e.offsetX, prevY: e.offsetY}, _this.onMouseMove);
+            $('.select_box').on('mouseup', function() {
+                $(window).off('mousemove');
+                $('.select_box').off('mouseup');
+            })  ;
+        });
+
 
         var resizers = document.querySelectorAll(".resizer");
         var currentResizer;
 
         resizers.forEach(function(resizer){
-            resizer.addEventListener('mousedown', mousedown);
+            //resizer.addEventListener('mousedown', mousedown);
             function mousedown(e){
                 e.stopPropagation();
                 console.log("resizer down");
@@ -277,10 +243,11 @@ var imageEditor = {
                 var prevX = e.offsetX;
                 var prevY = e.offsetY;
 
-                resizer.addEventListener("mousemove",mousemove);
-                window.addEventListener("mouseup",mouseup);
+                resizer.addEventListener("mousemove", mousemove);
+                window.addEventListener("mouseup", mouseup);
 
                 function mousemove(e) {
+                    console.log("move!!!")
                     var rect = el.getBoundingClientRect();
                     //console.log(rect);
 
@@ -419,6 +386,112 @@ var imageEditor = {
         });
     }
 
+    , onMouseMove: function(e) {
+        if(imageEditor.mouseMoveType == "move") { // move
+            var moveX = e.clientX - imageEditor.prevX;
+            var moveY = e.clientY - imageEditor.prevY;
+
+            $('.select_box').css({
+                left: $('.select_box').offset().left + moveX,
+                top: $('.select_box').offset().top + moveY
+            });
+            imageEditor.prevX = e.clientX;
+            imageEditor.prevY = e.clientY;
+
+            if($('.select_box').offset().left < imageEditor.boundInfo.l) {
+                $('.select_box').css({left: imageEditor.boundInfo.l});
+            }
+            if($('.select_box').offset().left + $('.select_box').width() > imageEditor.boundInfo.r) {
+                $('.select_box').css({left: imageEditor.boundInfo.l + ($('#width').val() - $('.select_box').width())});
+            }
+            if($('.select_box').offset().top < imageEditor.boundInfo.t) {
+                $('.select_box').css({top: imageEditor.boundInfo.t});
+            }
+            if($('.select_box').offset().top + $('.select_box').height() > imageEditor.boundInfo.b) {
+                $('.select_box').css({top: imageEditor.boundInfo.t + ($('#height').val() - $('.select_box').height())});
+            }
+        } else { // crop
+            var currentResizer = e.data.target;
+
+            if(currentResizer.classList.contains("bottom-right")) {
+                var w = rect.width - (imageEditor.prevX - e.offsetX);
+                var h = rect.height - (imageEditor.prevY - e.offsetY);
+
+                if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( rect.left - imageEditor.imgInfo.left)) {
+                    el.style.width = w + "px";
+                }
+                if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( rect.top - imageEditor.imgInfo.top )) {
+                    el.style.height = h + "px";
+                }
+                if(rect.left > imageEditor.imgInfo.left){
+                    el.style.left = rect.left + "px";
+                }
+                if(rect.top > imageEditor.imgInfo.top){
+                    el.style.top = rect.top + "px";
+                }
+
+            } else if (currentResizer.classList.contains("bottom-left")) {
+                var w = rect.width + (imageEditor.prevX - e.offsetX);
+                var h = rect.height - (imageEditor.prevY - e.offsetY);
+                if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( imageEditor.imgInfo.right - rect.right)) {
+                    el.style.width = w + "px";
+                }
+                if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( rect.top - imageEditor.imgInfo.top )) {
+                    el.style.height = h + "px";
+                }
+                if(rect.top > imageEditor.imgInfo.top){
+                    el.style.top = rect.top + "px";
+                }
+                if(rect.left > imageEditor.imgInfo.left) {
+                    el.style.left = rect.left - (prevX - e.offsetX) + "px";
+                }
+            } else if (currentResizer.classList.contains("top-right")) {
+                var w = rect.width  - (imageEditor.prevX - e.offsetX);
+                var h = rect.height + (imageEditor.prevY - e.offsetY);
+                if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( rect.left - imageEditor.imgInfo.left)) {
+                    el.style.width = w + "px";
+                }
+                if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( imageEditor.imgInfo.bottom - rect.bottom )) {
+                    el.style.height = h + "px";
+                }
+                if(rect.top > imageEditor.imgInfo.top) {
+                    el.style.top = rect.y - (imageEditor.prevY - e.offsetY) + "px";
+                }
+                if(rect.left > imageEditor.imgInfo.left){
+                    el.style.left = rect.left + "px";
+                }
+            } else if (currentResizer.classList.contains("top-left")) {
+                var w = rect.width + (imageEditor.prevX - e.offsetX);
+                var h = rect.height + (imageEditor.prevY - e.offsetY);
+                if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( imageEditor.imgInfo.right - rect.right )) {
+                    el.style.width = w + "px";
+                }
+                if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( imageEditor.imgInfo.bottom - rect.bottom )) {
+                    el.style.height = h + "px";
+                }
+                if(rect.top > imageEditor.imgInfo.top) {
+                    el.style.top = rect.top - (imageEditor.prevY - e.offsetY) + "px";
+                }
+                if(rect.left > imageEditor.imgInfo.left){
+                    el.style.left = rect.left - (prevX - e.offsetX) + "px";
+                }
+                //if(w == imageEditor.imgInfo.minWidth){
+                //    console.log("1212");
+                //    el.style.top = rect.top - (imageEditor.prevY - e.offsetY) + "px";
+                //}
+
+                //if(rect.top + rect.height > imageEditor.imgInfo.bottom){
+                //    console.log("b");
+                //    el.style.top = 545 + (imageEditor.prevY - e.offsetY) + "px";
+                //}
+                //if(rect.left + rect.width > imageEditor.imgInfo.right){
+                //    console.log("r");
+                //    el.style.left = 720 + (imageEditor.prevX - e.offsetX) + "px";
+                //}
+            }
+        }
+    }
+
     , reSize: function(type) {
         this.drawImage("resize");
         return;
@@ -520,21 +593,14 @@ var imageEditor = {
         }
     }
 
-    , crop: function(){
+    , crop: function(dir){
         var _this = this;
-        if(this.angleCount % 2 == 1) {
-            $('.select_box').css({
-                "width": parseInt($('#height').val(),10) + "px",
-                "height": parseInt($('#width').val(),10)+ "px",
-                "display": "inline-block"
-            });
-        } else {
-            $('.select_box').css({
-                "width": parseInt($('#width').val(),10) + "px",
-                "height": parseInt($('#height').val(),10) + "px",
-                "display": "inline-block"
-            });
-        }
+
+        $('.select_box').css({
+            "width": parseInt($('#width').val(),10) + "px",
+            "height": parseInt($('#height').val(),10) + "px",
+            "display": "inline-block"
+        });
 
         $('#imageCrop').css("display","inline-block");
 
@@ -561,9 +627,11 @@ var imageEditor = {
 
             console.log("x: " + x + "/ y: " + y);
 
-
             var currentImageData = _this.ctx.getImageData(x, y, w, h);
-            _this.clearCanvas();
+                _this.ctx.clearRect(0, 0, _this.canvas.width, _this.canvas.height); // 원래 상태 지우기
+                _this.ctx.clearRect(-_this.canvas.height / 2, -_this.canvas.width / 2, _this.canvas.height, _this.canvas.width); //rotate시 지우기
+                _this.ctx.clearRect(-_this.canvas.width, 0, _this.canvas.width, _this.canvas.height); //좌우 반전시 지우기
+                _this.ctx.clearRect(0, -_this.canvas.height, _this.canvas.width, _this.canvas.height); //상하 반전시 지우기
             _this.ctx.putImageData(currentImageData, (_this.canvas.width - w) / 2, (_this.canvas.height - h) / 2);
             $('#select_box').css("left", (_this.canvas.width - w) / 2 + "px");
             $('#select_box').css("top", (_this.canvas.height - h) / 2 + "px");
@@ -621,7 +689,7 @@ var imageEditor = {
         var sh = imgData.height; // 원본 데이터 높이
         var w = sw;
         var h = sh;
-        var output = this.ctx.createImageData(w, h);
+        var output = this.ctx.getImageData(0, 0, w, h); //this.ctx.createImageData(w, h);
         var dst = output.data;
         var alphaFac = opaque ? 1 : 0;
         for (var y = 0; y < h; y++) {
@@ -672,29 +740,28 @@ var imageEditor = {
     , getFilterBright: function (imgData, value, type) {
         var d = imgData.data;
         this.clearCanvas();
+
         if( type == "plus") {
-            console.log("1");
-            for (var i = 0; i < d.length; i += 4) {
+            for (var i=0 ; i<d.length; i+= 4) {
                 d[i] += value / 3;
-                d[i + 1] += value / 3;
-                d[i + 2] += value / 3;
+                d[i+1] += value / 3;
+                d[i+2] += value / 3;
             }
         } else {
-            console.log("2");
-            for(var i=0; i< d.length; i+=4) {
-                d[i] -= value/3;
-                d[i+1] -= value/3;
-                d[i+2] -= value/3;
+            for(var i=0; i<d.length; i+=4) {
+                d[i] -= value / 3;
+                d[i+1] -= value / 3;
+                d[i+2] -= value / 3;
             }
         }
 
-        /*
-        var value = (parseInt($('#brightness').val(),10) * 30);
-        for(var i=0; i< d.length; i+=4) {
-                d[i] -= value;
-                d[i+1] -= value;
-                d[i+2] -= value;
-        }*/
+        //var value = (parseInt($('#brightness').val(),10) * 30);
+        //for(var i=0; i< d.length; i+=4) {
+        //    d[i] += value;
+        //    d[i+1] += value;
+        //    d[i+2] += value;
+        //}
+
         return imgData;
     }
 
@@ -724,7 +791,7 @@ var imageEditor = {
         this.ctx.putImageData(filteredData, 0, 0);
     }
 
-    , zoom: function (dir) {
+    , zoom: function(dir) {
         this.drawImage("zoom",dir);
 
         return ;
