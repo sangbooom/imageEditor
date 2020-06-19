@@ -19,7 +19,6 @@ var imageEditor = {
         this.canvas = $('#canvas')[0];
         this.ctx = this.canvas.getContext('2d');
         this.editImg = new Image();
-
         this.loadImage('../img/facility_3.png');
     }
 
@@ -92,23 +91,34 @@ var imageEditor = {
             _this.crop();
         });
 
-        $('#sharpen').on('input', function() {
-            var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
-            var filteredData = _this.sharpen(imgData);
-
-            _this.ctx.putImageData(filteredData, 0 , 0);
-        });
-
         $('#brightness').on('input',function(){
+            var w = $('#width').val();
+            var h = $('#height').val();
+
+            _this.ctx.drawImage(_this.editImg, 0, 0, w, h);
+
             _this.setFilterBright();
+
+            //var _this = this;
+            //var img2 = new Image();
+            //img2.src = imageEditor.canvas.toDataURL();
+            //$(img2).on('load', function() {
+            //    var w = $('#width').val();
+            //    var h = $('#height').val();
+            //    imageEditor.ctx.setTransform(1,0,0,1,0,0);
+            //    imageEditor.ctx.drawImage(img2, 0, 0, w, h); //이걸 바꿔야됨
+            //
+            //    imageEditor.setFilterBright();
+            //});
         });
 
-        $('#plus').on('click',function(){
-            _this.setFilterBright("plus");
-        });
+        $('#contrast').on('input', function(){
+            var w = $('#width').val();
+            var h = $('#height').val();
 
-        $('#minus').on('click',function(){
-            _this.setFilterBright("minus");
+            _this.ctx.drawImage(_this.editImg, 0, 0, w, h);
+
+            _this.setFilterContrast();
         });
 
         $('#blur').on('input', function(){
@@ -118,8 +128,11 @@ var imageEditor = {
             _this.ctx.putImageData(filteredData, 0 , 0);
         });
 
-        $('#contrast').on('click', function(){
-            _this.setFilterContrast();
+        $('#sharpen').on('input', function() {
+            var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
+            var filteredData = _this.sharpen(imgData);
+
+            _this.ctx.putImageData(filteredData, 0 , 0);
         });
 
         $('#zoom_in').on('click', function () {
@@ -179,6 +192,8 @@ var imageEditor = {
                 case "resize":
                     $('#canvas').attr('width', w);
                     $('#canvas').attr('height', h);
+                    //_this.ctx.imageSmoothingQuality = "high";
+                    //_this.ctx.imageSmoothingEnabled = false;
                     _this.ctx.drawImage(img, 0, 0, w, h);
                     break;
 
@@ -191,7 +206,6 @@ var imageEditor = {
                     } else {
                         _this.ctx.rotate(Math.PI / 2);
                     }
-
                     _this.ctx.drawImage(img, -h / 2, -w / 2, h, w);
                     break;
 
@@ -206,7 +220,7 @@ var imageEditor = {
                     }
                     break;
 
-                case "zoom":     //canvas image zoom quality에 대해 찾아보기
+                case "zoom":     //canvas image quality에 대해 찾아보기
                     _this.clearCanvas();
                     var scale = ( dir == "zoom_in" ? 1.1 : 0.9 );
                     var currentW = Math.round($('#width').val() * scale);
@@ -514,24 +528,24 @@ var imageEditor = {
                 offset, offset, offset ], 0);
     }
 
-    , getFilterBright: function (imgData, value, type) {
+    , setFilterBright: function () {
+        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        var brightness = parseInt($('#brightness').val());
+        var filteredData = this.getFilterBright(imgData, brightness);
+        this.ctx.putImageData(filteredData, 0, 0);
+    }
+
+    , getFilterBright: function (imgData, value) {
         var d = imgData.data;
         this.clearCanvas();
 
-        var value = (parseInt($('#brightness').val(),10) * 30);
         for(var i=0; i< d.length; i+=4) {
-            d[i] += value;
-            d[i+1] += value;
-            d[i+2] += value;
+            d[i] += 255 * (value / 100);
+            d[i+1] += 255 * (value / 100);
+            d[i+2] += 255 * (value / 100);
         }
 
         return imgData;
-    }
-
-    , setFilterBright: function (type) {
-        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        var filteredData = this.getFilterBright(imgData, 100 , type);
-        this.ctx.putImageData(filteredData, 0, 0);
     }
 
     , getFilterContrast: function(imgData, contrast) {
@@ -553,6 +567,8 @@ var imageEditor = {
         var filteredData = this.getFilterContrast(imgData, parseInt($('#contrast').val(),10) );
         this.ctx.putImageData(filteredData, 0, 0);
     }
+
+
 
     , zoom: function(dir) {
         this.controlImage("zoom",dir);
