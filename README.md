@@ -32,3 +32,6 @@ http://jsfiddle.net/8wtq17L8/
 
 https://tutorialpost.apptilus.com/code/posts/js/w-dom-event/
 event 핸들링
+
+https://minimonk.net/8470
+image resize 할떄 quality 보장하기 위한 알고리즘.. ( 해결해야 됨)
