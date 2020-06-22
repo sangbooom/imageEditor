@@ -15,32 +15,34 @@ var imageEditor = {
     , imgW: 0
     , imgH: 0
 
-
     , currentImg: null
 
     , init: function() {
         this.canvas = $('#canvas')[0];
         this.ctx = this.canvas.getContext('2d');
         this.editImg = new Image();
-        this.loadImage('../img/facility_3.png');
+        this.loadImage("../여기서해라/123.jpeg");
     }
 
     , loadImage: function(path) {
         var _this = this;
 
         $(_this.editImg).on('load', function(){
-            _this.imgW = _this.editImg.width; //imgW, imgH 각각 초기 이미지 넓이 높이로 초기화
-            _this.imgH = _this.editImg.height;
+            _this.imgW = this.width; //imgW, imgH 각각 초기 이미지 넓이 높이로 초기화
+            _this.imgH = this.height;
             $('#canvas').attr('width', _this.imgW); //캔버스 넓이 높이를 초기 이미지넓이 높이로 변경
             $('#canvas').attr('height', _this.imgH);
-            _this.ctx.drawImage(_this.editImg, 0, 0);
+            _this.ctx.drawImage(this, 0, 0);
+            _this.currentImg = new Image();
+            _this.currentImg.src = _this.canvas.toDataURL(); 
             $('#width').val(_this.imgW);
             $('#height').val(_this.imgH);
-            $(_this.editImg).off('load');
+            $(this).off('load');
 
             _this.registEvent();
         });
-        _this.editImg.src = path;
+        _this.editImg.src = path;   
+         
     }
 
     , registEvent: function() {
@@ -97,35 +99,19 @@ var imageEditor = {
         $('#brightness').on('input',function(){
             var w = $('#width').val();
             var h = $('#height').val();
-
-            _this.ctx.drawImage(_this.editImg, 0, 0, w, h);
-
+        
+            _this.ctx.drawImage(_this.currentImg, 0, 0, w, h); //editImg 로 하는지 currentImg로 하는지,,,,,
+        
             _this.setFilterBright();
-
-            var _this = this;
-            var img2 = new Image();
-            img2.src = imageEditor.canvas.toDataURL();
-            $(img2).on('load', function() {
-                var w = $('#width').val();
-                var h = $('#height').val();
-                imageEditor.ctx.setTransform(1,0,0,1,0,0);
-                imageEditor.ctx.drawImage(img2, 0, 0, w, h); //이걸 바꿔야됨
-
-                imageEditor.setFilterBright();
-            });
         });
 
         $('#contrast').on('input', function(){
             var w = $('#width').val();
             var h = $('#height').val();
 
-            console.log(_this.currentImg);
-
-            //_this.clearCanvas();
-
             _this.ctx.drawImage(_this.currentImg, 0, 0, w, h);
 
-            //_this.setFilterContrast();
+            _this.setFilterContrast();
         });
 
         $('#blur').on('input', function(){
@@ -196,12 +182,13 @@ var imageEditor = {
                     $('#canvas').attr('height', h);
                     //_this.ctx.imageSmoothingQuality = "high";
                     //_this.ctx.imageSmoothingEnabled = false;
-                    _this.ctx.drawImage(this.currentImg, 0, 0, w, h);
+                    _this.ctx.drawImage(this, 0, 0, w, h);
                     break;
 
                 case "rotation":
                     $('#canvas').attr('width', w);
                     $('#canvas').attr('height', h);
+                    
                     _this.ctx.translate(w / 2, h / 2);
                     if(dir == "left") {
                         _this.ctx.rotate(-Math.PI / 2);
@@ -209,16 +196,18 @@ var imageEditor = {
                         _this.ctx.rotate(Math.PI / 2);
                     }
                     _this.ctx.translate(-h / 2, -w / 2);
-
-
+                    
                     _this.ctx.drawImage(this, 0, 0, h, w);
                     break;
 
                 case "flip":
                     _this.clearCanvas();
-                    if(dir == "x_flip"){
-                        _this.ctx.setTransform(-1,0,0,1,0,0);
+                    if(dir == "x_flip"){ 
+                        // _this.ctx.setTransform(-1,0,0,1,0,0);
+                        _this.ctx.save();
+                        _this.ctx.scale(-1,1);
                         _this.ctx.drawImage(this, -this.width, 0, w, h);
+                        _this.ctx.restore();
                     } else {
                         _this.ctx.setTransform(1,0,0,-1,0,0);
                         _this.ctx.drawImage(this, 0, -this.height, w, h);
@@ -235,7 +224,7 @@ var imageEditor = {
                     $('#canvas').attr('width', currentW);
                     $('#canvas').attr('height', currentH);
                     _this.ctx.setTransform(scale,0,0,scale,0,0);
-                    _this.ctx.drawImage(img, 0, 0, w, h);
+                    _this.ctx.drawImage(this, 0, 0, w, h);
                     $('#imageRatio').text( (_this.zoomValue += ( dir == "zoom_in" ? ((scale*10)-1) : -((scale*10)+1) ) ) + "%");
                     break;
             }
@@ -319,9 +308,7 @@ var imageEditor = {
 
                 $('.cropBox').css({ left: rect.left });
 
-                if( true){
-                    //여기부터
-                } else if( rect.width + moveX  > minSize){
+                if( rect.width + moveX  > minSize){
                     $('.cropBox').css({width: rect.width + moveX });
                 }
                 if( rect.height - moveY > minSize){
@@ -408,10 +395,16 @@ var imageEditor = {
             $('#canvas').attr("height", rect.height + "px");
 
             _this.ctx.putImageData(currentImageData, 0,0 );
+            _this.currentImg.src = _this.canvas.toDataURL();
 
             $('.cropBox').css("left", _this.boundInfo.x + (_this.boundInfo.width - rect.width) / 2 + "px");
             $('.cropBox').css("top", _this.boundInfo.y + (_this.boundInfo.height - rect.height) / 2 + "px");
+            
+            $('#width').val(rect.width);
+            $('#height').val(rect.height);
 
+            $('.cropBox').css({ "display": "none"});
+            $('#imageCrop').css({ "display": "none"});
 
         });
     }
