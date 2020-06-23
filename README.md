@@ -32,3 +32,13 @@ http://jsfiddle.net/8wtq17L8/
 
 https://tutorialpost.apptilus.com/code/posts/js/w-dom-event/
 event 핸들링
+
+https://minimonk.net/8470
+image resize 할떄 quality 보장하기 위한 알고리즘.. ( 해결해야 됨)
+
+---
+
+## Todo
+- rotate후에 size 변경할떄 비율대로 움직이고, 세로 크기 초기화 되는거 고치기
+- ctx image quality가 보장안됨. (가로 세로를 늘리거나 zoom할때)
+

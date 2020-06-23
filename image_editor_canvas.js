@@ -9,36 +9,40 @@ var imageEditor = {
     , imgInfo :{}
     , dataURL : null
     , mouseMoveType: null
-    , boundInfo: null
+    , boundInfo: {}
     , prevX: 0
     , prevY: 0
     , imgW: 0
     , imgH: 0
 
+    , currentImg: null
+
     , init: function() {
         this.canvas = $('#canvas')[0];
         this.ctx = this.canvas.getContext('2d');
         this.editImg = new Image();
-
-        this.loadImage('../img/facility_3.png');
+        this.loadImage("../img/facility_3");
     }
 
     , loadImage: function(path) {
         var _this = this;
 
         $(_this.editImg).on('load', function(){
-            _this.imgW = _this.editImg.width; //imgW, imgH 각각 초기 이미지 넓이 높이로 초기화
-            _this.imgH = _this.editImg.height;
+            _this.imgW = this.width; //imgW, imgH 각각 초기 이미지 넓이 높이로 초기화
+            _this.imgH = this.height;
             $('#canvas').attr('width', _this.imgW); //캔버스 넓이 높이를 초기 이미지넓이 높이로 변경
             $('#canvas').attr('height', _this.imgH);
-            _this.ctx.drawImage(_this.editImg, 0, 0);
+            _this.ctx.drawImage(this, 0, 0);
+            _this.currentImg = new Image();
+            _this.currentImg.src = _this.canvas.toDataURL();
             $('#width').val(_this.imgW);
             $('#height').val(_this.imgH);
-            $(_this.editImg).off('load');
+            $(this).off('load');
 
             _this.registEvent();
         });
         _this.editImg.src = path;
+
     }
 
     , registEvent: function() {
@@ -92,23 +96,22 @@ var imageEditor = {
             _this.crop();
         });
 
-        $('#sharpen').on('input', function() {
-            var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
-            var filteredData = _this.sharpen(imgData);
-
-            _this.ctx.putImageData(filteredData, 0 , 0);
-        });
-
         $('#brightness').on('input',function(){
+            var w = $('#width').val();
+            var h = $('#height').val();
+
+            _this.ctx.drawImage(_this.currentImg, 0, 0, w, h); //editImg 로 하는지 currentImg로 하는지,,,,,
+
             _this.setFilterBright();
         });
 
-        $('#plus').on('click',function(){
-            _this.setFilterBright("plus");
-        });
+        $('#contrast').on('input', function(){
+            var w = $('#width').val();
+            var h = $('#height').val();
 
-        $('#minus').on('click',function(){
-            _this.setFilterBright("minus");
+            _this.ctx.drawImage(_this.currentImg, 0, 0, w, h);
+
+            _this.setFilterContrast();
         });
 
         $('#blur').on('input', function(){
@@ -118,8 +121,11 @@ var imageEditor = {
             _this.ctx.putImageData(filteredData, 0 , 0);
         });
 
-        $('#contrast').on('click', function(){
-            _this.setFilterContrast();
+        $('#sharpen').on('input', function() {
+            var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
+            var filteredData = _this.sharpen(imgData);
+
+            _this.ctx.putImageData(filteredData, 0 , 0);
         });
 
         $('#zoom_in').on('click', function () {
@@ -130,25 +136,20 @@ var imageEditor = {
             _this.zoom("zoom_out");
         });
 
-        $('#imageReturn').on('click', function() {
+        $('#resetBtn').on('click', function() {
             _this.reset();
         });
 
-        $('.select_box').on('mousedown', function(e) {
+        $('.cropBox').on('mousedown', function(e) {
             var w = parseInt($('#width').val(),10);
             var h = parseInt($('#height').val(),10);
 
-            _this.boundInfo = {
-                l: ( $('#img_con')[0].clientWidth - w ) / 2 ,
-                t: $('#img_con')[0].offsetTop + ( $('#img_con')[0].offsetHeight - h ) / 2 ,
-                r: ( $('#img_con')[0].clientWidth - w ) / 2 + w ,
-                b: $('#img_con')[0].offsetTop + ( $('#img_con')[0].offsetHeight - h ) / 2 + h
-            };
+            _this.boundInfo = $('#canvas')[0].getBoundingClientRect();
 
             _this.prevX = e.clientX;
             _this.prevY = e.clientY;
 
-            if($(e.target).hasClass("select_box")) {
+            if($(e.target).hasClass("cropBox")) {
                 _this.mouseMoveType = "move";
             } else {
                 _this.mouseMoveType = "crop";
@@ -156,22 +157,21 @@ var imageEditor = {
 
             $(window).on('mousemove', {target: e.target, prevX: e.offsetX, prevY: e.offsetY}, _this.onMouseMove);
 
-            $('.select_box').on('mouseup', function() {
+            $('.cropBox').on('mouseup', function() {
                 $(window).off('mousemove');
-                $('.select_box').off('mouseup');
-            })  ;
+                $('.cropBox').off('mouseup');
+            });
         });
 
-        $('#imageSave').on("click", function(){
+        $('#applyBtn').on("click", function(){
             _this.saveImage();
         });
     }
 
     , controlImage: function(type, dir) {
         var _this = this;
-        var img = new Image();
-        img.src = this.canvas.toDataURL();
-        $(img).on('load', function() {
+        this.currentImg.src = this.canvas.toDataURL();
+        $(this.currentImg).on('load', function() {
             var w = $('#width').val();
             var h = $('#height').val();
 
@@ -179,34 +179,41 @@ var imageEditor = {
                 case "resize":
                     $('#canvas').attr('width', w);
                     $('#canvas').attr('height', h);
-                    _this.ctx.drawImage(img, 0, 0, w, h);
+                    //_this.ctx.imageSmoothingQuality = "high";
+                    //_this.ctx.imageSmoothingEnabled = false;
+                    _this.ctx.drawImage(this, 0, 0, w, h);
                     break;
 
                 case "rotation":
                     $('#canvas').attr('width', w);
                     $('#canvas').attr('height', h);
+
                     _this.ctx.translate(w / 2, h / 2);
                     if(dir == "left") {
                         _this.ctx.rotate(-Math.PI / 2);
                     } else {
                         _this.ctx.rotate(Math.PI / 2);
                     }
+                    _this.ctx.translate(-h / 2, -w / 2);
 
-                    _this.ctx.drawImage(img, -h / 2, -w / 2, h, w);
+                    _this.ctx.drawImage(_this.currentImg, 0, 0, h, w);
                     break;
 
                 case "flip":
                     _this.clearCanvas();
                     if(dir == "x_flip"){
-                        _this.ctx.setTransform(-1,0,0,1,0,0);
-                        _this.ctx.drawImage(img, -img.width, 0, w, h);
+                        // _this.ctx.setTransform(-1,0,0,1,0,0);
+                        _this.ctx.save();
+                        _this.ctx.scale(-1,1);
+                        _this.ctx.drawImage(this, -this.width, 0, w, h);
+                        _this.ctx.restore();
                     } else {
                         _this.ctx.setTransform(1,0,0,-1,0,0);
-                        _this.ctx.drawImage(img, 0, -img.height, w, h);
+                        _this.ctx.drawImage(this, 0, -this.height, w, h);
                     }
                     break;
 
-                case "zoom":     //canvas image zoom quality에 대해 찾아보기
+                case "zoom":     //canvas image quality에 대해 찾아보기
                     _this.clearCanvas();
                     var scale = ( dir == "zoom_in" ? 1.1 : 0.9 );
                     var currentW = Math.round($('#width').val() * scale);
@@ -216,15 +223,17 @@ var imageEditor = {
                     $('#canvas').attr('width', currentW);
                     $('#canvas').attr('height', currentH);
                     _this.ctx.setTransform(scale,0,0,scale,0,0);
-                    _this.ctx.drawImage(img, 0, 0, w, h);
+                    _this.ctx.drawImage(this, 0, 0, w, h);
                     $('#imageRatio').text( (_this.zoomValue += ( dir == "zoom_in" ? ((scale*10)-1) : -((scale*10)+1) ) ) + "%");
                     break;
             }
-            $(img).off('load');
+            $(this).off('load');
         });
     }
 
     , onMouseMove: function(e) {
+        var rect = $('.cropBox')[0].getBoundingClientRect();
+
         if(imageEditor.mouseMoveType == "move") { // move
             var moveX = e.clientX - imageEditor.prevX;
             var moveY = e.clientY - imageEditor.prevY;
@@ -232,112 +241,92 @@ var imageEditor = {
             // console.log("moveX : ", moveX);
             // console.log("moveY : ", moveY);
 
-            $('.select_box').css({
-                left: $('.select_box').offset().left + moveX,
-                top: $('.select_box').offset().top + moveY
+            $('.cropBox').css({
+                left: $('.cropBox').offset().left + moveX,
+                top: $('.cropBox').offset().top + moveY
             });
+
+            if( rect.left < imageEditor.boundInfo.left) {
+                $('.cropBox').css({left: imageEditor.boundInfo.left});
+            }
+            if( rect.left + rect.width > imageEditor.boundInfo.right) {
+                $('.cropBox').css({left: imageEditor.boundInfo.left + ( imageEditor.boundInfo.width - rect.width )});
+            }
+            if( rect.top < imageEditor.boundInfo.top) {
+                $('.cropBox').css({top: imageEditor.boundInfo.top});
+            }
+            if( rect.top + rect.height > imageEditor.boundInfo.bottom) {
+                $('.cropBox').css({top: imageEditor.boundInfo.top + ( imageEditor.boundInfo.height - rect.height )});
+            }
             imageEditor.prevX = e.clientX;
             imageEditor.prevY = e.clientY;
 
-            if($('.select_box').offset().left < imageEditor.boundInfo.l) {
-                $('.select_box').css({left: imageEditor.boundInfo.l});
-            }
-            if($('.select_box').offset().left + $('.select_box').width() > imageEditor.boundInfo.r) {
-                $('.select_box').css({left: imageEditor.boundInfo.l + ($('#width').val() - $('.select_box').width())});
-            }
-            if($('.select_box').offset().top < imageEditor.boundInfo.t) {
-                $('.select_box').css({top: imageEditor.boundInfo.t});
-            }
-            if($('.select_box').offset().top + $('.select_box').height() > imageEditor.boundInfo.b) {
-                $('.select_box').css({top: imageEditor.boundInfo.t + ($('#height').val() - $('.select_box').height())});
-            }
         } else { // crop
             var currentResizer = e.data.target;
 
+            var moveX = ( e.clientX - imageEditor.prevX );
+            var moveY = ( e.clientY - imageEditor.prevY );
+
+            var minSize = 50;
 
             if(currentResizer.classList.contains("bottom-right")) {
-                var w = parseInt($('#width').val(),10) + ( e.clientX - imageEditor.prevX );
-                var h = parseInt($('#height').val(),10) + ( e.clientY - imageEditor.prevY );
-                $('.select_box').css({left: $('.select_box').offset().left });
-                $('.select_box').css({top: $('.select_box').offset().top });
 
-                if(w > 50 || w < $('#width').val()) {
-                    $('.select_box').css({width: ( e.clientX - imageEditor.boundInfo.l ) });
+                $('.cropBox').css({ left: rect.left, top: rect.top });
+
+                if( rect.left + rect.width > imageEditor.boundInfo.right ){
+                    $('.cropBox').css({width: rect.width -1 });
+                } else if( rect.width + moveX  > minSize ){
+                    $('.cropBox').css({width: rect.width + moveX });
                 }
-                if(h > 50 || h < $('#height').val()) {
-                    $('.select_box').css({height: ( e.clientY - imageEditor.boundInfo.t ) });
+
+                if( rect.top + rect.height > imageEditor.boundInfo.bottom ){
+                    $('.cropBox').css({height: rect.height -1 });
+                } else if( rect.height + moveY > minSize){
+                    $('.cropBox').css({height: rect.height + moveY });
                 }
-                //if(h > 50 && h < imageEditor.imgInfo.maxHeight - ( imageEditor.boundInfo.top - imageEditor.imgInfo.top )) {
-                //    el.style.height = h + "px";
-                //}
-                //if(imageEditor.boundInfo.left > imageEditor.imgInfo.left){
-                //    el.style.left = imageEditor.boundInfo.left + "px";
-                //}
-                //if(imageEditor.boundInfo.top > imageEditor.imgInfo.top){
-                //    el.style.top = imageEditor.boundInfo.top + "px";
-                //}
 
             } else if (currentResizer.classList.contains("bottom-left")) {
-                var w = parseInt($('#width').val(),10) - ( e.clientX - imageEditor.prevX );
-                var h = parseInt($('#height').val(),10) + ( e.clientY - imageEditor.prevY );
-                $('.select_box').css({left: $('.select_box').offset().left });
-                $('.select_box').css({top: $('.select_box').offset().top });
 
-                if(w > 50 || w < $('#width').val()) {
-                    $('.select_box').css({width: parseInt($('#width').val(),10) - ( e.clientX - imageEditor.prevX ) });
+                $('.cropBox').css({top: rect.top });
+
+                if( imageEditor.boundInfo.left + rect.width > imageEditor.boundInfo.right - (imageEditor.boundInfo.right - rect.right ) ){
+                    $('.cropBox').css({ left: imageEditor.boundInfo.left });
+                    $('.cropBox').css({ width: rect.width - 1 });
+                } else if( rect.width - moveX  > minSize){
+                    $('.cropBox').css({ width: rect.width - moveX });
+                    $('.cropBox').css({ left: rect.left + moveX });
                 }
-                if(h > 50 || h < $('#height').val()) {
-                    $('.select_box').css({height: parseInt($('#height').val(),10) + (e.clientY - imageEditor.prevY ) });
+
+                if( imageEditor.boundInfo.top + rect.height > imageEditor.boundInfo.bottom - (rect.top - imageEditor.boundInfo.top) ){
+                    $('.cropBox').css({ height : rect.height - 1 });
+                } else if( rect.height + moveY > minSize){
+                    $('.cropBox').css({ height: rect.height + moveY });
                 }
-                //if(imageEditor.boundInfo.top > imageEditor.imgInfo.top){
-                //    el.style.top = imageEditor.boundInfo.top + "px";
-                //}
-                //if(imageEditor.boundInfo.left > imageEditor.imgInfo.left) {
-                //    el.style.left = imageEditor.boundInfo.left - (prevX - e.offsetX) + "px";
-                //}
+
             } else if (currentResizer.classList.contains("top-right")) {
-                var w = imageEditor.boundInfo.width  - (imageEditor.prevX - e.offsetX);
-                var h = imageEditor.boundInfo.height + (imageEditor.prevY - e.offsetY);
-                if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( imageEditor.boundInfo.left - imageEditor.imgInfo.left)) {
-                    el.style.width = w + "px";
+
+                $('.cropBox').css({ left: rect.left });
+
+                if( rect.width + moveX  > minSize){
+                    $('.cropBox').css({width: rect.width + moveX });
                 }
-                if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( imageEditor.imgInfo.bottom - imageEditor.boundInfo.bottom )) {
-                    el.style.height = h + "px";
+                if( rect.height - moveY > minSize){
+                    $('.cropBox').css({top: rect.top + moveY });
+                    $('.cropBox').css({height: rect.height - moveY });
                 }
-                if(imageEditor.boundInfo.top > imageEditor.imgInfo.top) {
-                    el.style.top = imageEditor.boundInfo.y - (imageEditor.prevY - e.offsetY) + "px";
-                }
-                if(imageEditor.boundInfo.left > imageEditor.imgInfo.left){
-                    el.style.left = imageEditor.boundInfo.left + "px";
-                }
+
             } else if (currentResizer.classList.contains("top-left")) {
-                var w = imageEditor.boundInfo.width + (imageEditor.prevX - e.offsetX);
-                var h = imageEditor.boundInfo.height + (imageEditor.prevY - e.offsetY);
-                if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( imageEditor.imgInfo.right - imageEditor.boundInfo.right )) {
-                    el.style.width = w + "px";
+                if( rect.width - moveX > minSize) {
+                    $('.cropBox').css({ width : rect.width - moveX });
+                    $('.cropBox').css({ left: rect.left + moveX});
                 }
-                if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( imageEditor.imgInfo.bottom - imageEditor.boundInfo.bottom )) {
-                    el.style.height = h + "px";
+                if( rect.height - moveY > minSize) {
+                    $('.cropBox').css({ height: rect.height - moveY });
+                    $('.cropBox').css({top: rect.top + moveY });
                 }
-                if(imageEditor.boundInfo.top > imageEditor.imgInfo.top) {
-                    el.style.top = imageEditor.boundInfo.top - (imageEditor.prevY - e.offsetY) + "px";
-                }
-                if(imageEditor.boundInfo.left > imageEditor.imgInfo.left){
-                    el.style.left = imageEditor.boundInfo.left - (prevX - e.offsetX) + "px";
-                }
-
-                imageEditor.prevX = e.clientX;
-                imageEditor.prevY = e.clientY;
-
-                //if(imageEditor.boundInfo.top + imageEditor.boundInfo.height > imageEditor.imgInfo.bottom){
-                //    console.log("b");
-                //    el.style.top = 545 + (imageEditor.prevY - e.offsetY) + "px";
-                //}
-                //if(imageEditor.boundInfo.left + imageEditor.boundInfo.width > imageEditor.imgInfo.right){
-                //    console.log("r");
-                //    el.style.left = 720 + (imageEditor.prevX - e.offsetX) + "px";
-                //}
             }
+            imageEditor.prevX = e.clientX;
+            imageEditor.prevY = e.clientY;
         }
     }
 
@@ -353,6 +342,11 @@ var imageEditor = {
 
     , clearCanvas: function() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        //_this.ctx.clearRect(0, 0, _this.canvas.width, _this.canvas.height); // 원래 상태 지우기
+        //_this.ctx.clearRect(-_this.canvas.height / 2, -_this.canvas.width / 2, _this.canvas.height, _this.canvas.width); //rotate시 지우기
+        //_this.ctx.clearRect(-_this.canvas.width, 0, _this.canvas.width, _this.canvas.height); //좌우 반전시 지우기
+        //_this.ctx.clearRect(0, -_this.canvas.height, _this.canvas.width, _this.canvas.height); //상하 반전시 지우기
         return;
     }
 
@@ -372,90 +366,37 @@ var imageEditor = {
         return;
     }
 
-    , crop: function(dir){
+    , crop: function(){
         var _this = this;
 
-        $('.select_box').css({
+        $('.cropBox').css({
             "width": parseInt($('#width').val(),10) + "px",
             "height": parseInt($('#height').val(),10) + "px",
             "display": "inline-block"
         });
 
-        $('#imageCrop').css("display","inline-block");
+        $('#cropBtn').css("display","inline-block");
 
-        if(_this.angleCount % 2 == 1){
-            this.imgInfo.maxWidth = parseInt($('#height').val(),10);
-            this.imgInfo.maxHeight = parseInt($('#width').val(),10);
-        } else {
-            this.imgInfo.maxWidth = parseInt($('#width').val(),10);
-            this.imgInfo.maxHeight = parseInt($('#height').val(),10);
-        }
+        $('#cropBtn').on('click', function(){
+            var rect = $('.cropBox')[0].getBoundingClientRect();
 
-        //this.imgInfo.minWidth = 50;
-        //this.imgInfo.minHeight = 50;
-        //this.imgInfo.left = $('.select_box')[0].offsetLeft; //(1160 - $('.select_box')[0].offsetWidth) / 2;
-        //this.imgInfo.top = $('.select_box')[0].offsetTop; //(792 - $('.select_box')[0].offsetHeight) / 2;
-        //this.imgInfo.right = $('.select_box')[0].offsetLeft + $('.select_box').width();
-        //this.imgInfo.bottom = $('.select_box')[0].offsetTop + $('.select_box').height();
+            var currentImageData = _this.ctx.getImageData( rect.x - _this.boundInfo.x , rect.y - _this.boundInfo.y , rect.width, rect.height);
 
-        $('#imageCrop').on('click', function(){
-            var x = $('.select_box').offset().left - $('#canvas').offset().left;
-            var y = $('.select_box').offset().top - $('#canvas').offset().top;
-            var w = $('.select_box').width();
-            var h = $('.select_box').height();
+            $('#canvas').attr("width", rect.width + "px");
+            $('#canvas').attr("height", rect.height + "px");
 
-            console.log("x: " + x + "/ y: " + y);
+            _this.ctx.putImageData(currentImageData, 0,0 );
+            _this.currentImg.src = _this.canvas.toDataURL();
 
-            var currentImageData = _this.ctx.getImageData(x, y, w, h);
-            _this.ctx.clearRect(0, 0, _this.canvas.width, _this.canvas.height); // 원래 상태 지우기
-            _this.ctx.clearRect(-_this.canvas.height / 2, -_this.canvas.width / 2, _this.canvas.height, _this.canvas.width); //rotate시 지우기
-            _this.ctx.clearRect(-_this.canvas.width, 0, _this.canvas.width, _this.canvas.height); //좌우 반전시 지우기
-            _this.ctx.clearRect(0, -_this.canvas.height, _this.canvas.width, _this.canvas.height); //상하 반전시 지우기
-            _this.ctx.putImageData(currentImageData, (_this.canvas.width - w) / 2, (_this.canvas.height - h) / 2);
-            $('.select_box').css("left", (_this.canvas.width - w) / 2 + "px");
-            $('.select_box').css("top", (_this.canvas.height - h) / 2 + "px");
+            $('.cropBox').css("left", _this.boundInfo.x + (_this.boundInfo.width - rect.width) / 2 + "px");
+            $('.cropBox').css("top", _this.boundInfo.y + (_this.boundInfo.height - rect.height) / 2 + "px");
 
+            $('#width').val(rect.width);
+            $('#height').val(rect.height);
 
-            /*
-             _this.clearCanvas();
+            $('.cropBox').css({ "display": "none"});
+            $('#cropBtn').css({ "display": "none"});
 
-             if(_this.angleCount % 2 == 1){
-             _this.cutWidth = $('.select_box')[0].offsetWidth;
-             _this.cutHeight = $('.select_box')[0].offsetHeight;
-
-             $('#width').val(_this.cutHeight);
-             $('#height').val(_this.cutWidth);
-
-             _this.ctx.drawImage(_this.editImg
-             , $('.select_box')[0].offsetTop - _this.imgInfo.top
-             , $('.select_box')[0].offsetLeft - _this.imgInfo.left
-             , $('.select_box')[0].offsetHeight
-             , $('.select_box')[0].offsetWidth
-             , -$('.select_box')[0].offsetHeight / 2
-             , -$('.select_box')[0].offsetWidth / 2
-             , $('.select_box')[0].offsetHeight
-             , $('.select_box')[0].offsetWidth);
-             } else {
-             _this.cutWidth = $('.select_box')[0].offsetWidth;
-             _this.cutHeight = $('.select_box')[0].offsetHeight;
-
-             $('#width').val(_this.cutWidth);
-             $('#height').val(_this.cutHeight);
-
-             _this.ctx.drawImage(_this.editImg
-             , $('.select_box')[0].offsetLeft - _this.imgInfo.left
-             , $('.select_box')[0].offsetTop - _this.imgInfo.top
-             , $('.select_box')[0].offsetWidth
-             , $('.select_box')[0].offsetHeight
-             , -$('.select_box')[0].offsetWidth / 2
-             , -$('.select_box')[0].offsetHeight / 2
-             , $('.select_box')[0].offsetWidth
-             , $('.select_box')[0].offsetHeight);
-             */
-            //}
-
-            //$('#imageCrop').css("display","none");
-            //$('.select_box').css("display","none");
         });
     }
 
@@ -514,24 +455,24 @@ var imageEditor = {
                 offset, offset, offset ], 0);
     }
 
-    , getFilterBright: function (imgData, value, type) {
+    , setFilterBright: function () {
+        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        var brightness = parseInt($('#brightness').val());
+        var filteredData = this.getFilterBright(imgData, brightness);
+        this.ctx.putImageData(filteredData, 0, 0);
+    }
+
+    , getFilterBright: function (imgData, value) {
         var d = imgData.data;
         this.clearCanvas();
 
-        var value = (parseInt($('#brightness').val(),10) * 30);
         for(var i=0; i< d.length; i+=4) {
-            d[i] += value;
-            d[i+1] += value;
-            d[i+2] += value;
+            d[i] += 255 * (value / 100);
+            d[i+1] += 255 * (value / 100);
+            d[i+2] += 255 * (value / 100);
         }
 
         return imgData;
-    }
-
-    , setFilterBright: function (type) {
-        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
-        var filteredData = this.getFilterBright(imgData, 100 , type);
-        this.ctx.putImageData(filteredData, 0, 0);
     }
 
     , getFilterContrast: function(imgData, contrast) {
@@ -553,6 +494,8 @@ var imageEditor = {
         var filteredData = this.getFilterContrast(imgData, parseInt($('#contrast').val(),10) );
         this.ctx.putImageData(filteredData, 0, 0);
     }
+
+
 
     , zoom: function(dir) {
         this.controlImage("zoom",dir);
