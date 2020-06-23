@@ -20,13 +20,13 @@ var imageEditorCanvas = {
         $(this.canvas).attr('height', this.img.height);
         this.ctx.drawImage(this.img, 0, 0);
     }
-    
+
     ,getProp : function (propName ) {
         return this.img[ propName ];
     }
-    
 
     ,registEvent : function () {
+
     }
 
     ,removeEvent : function () {

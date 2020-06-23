@@ -1,39 +1,79 @@
 var imageEditor = {
+    canvas: null
+    , ctx: null
+    , editImg: null
+    , toggleBtn: false
+    , zoomValue : 100
+    , cutWidth : 0
+    , cutHeight : 0
+    , imgInfo :{}
+    , dataURL : null
+    , mouseMoveType: null
+    , boundInfo: {}
+    , prevX: 0
+    , prevY: 0
+    , imgW: 0
+    , imgH: 0
 
-    editImg: null
-
-    , flag: false
+    , currentImg: null
 
     , init: function() {
-        editImg = $('#img_con img')[0];
-
-        this.registEvent();
-
-        var w = editImg.width;
-        $('#width').val(w);
-
-        var h = editImg.height;
-        $('#height').val(h);
-
-        editImg.style.width = w + 'px';
-        editImg.style.height = h + 'px';
+        this.canvas = $('#canvas')[0];
+        this.ctx = this.canvas.getContext('2d');
+        this.editImg = new Image();
+        this.loadImage("../img/facility_3");
     }
+
+    , loadImage: function(path) {
+        var _this = this;
+
+        $(_this.editImg).on('load', function(){
+            _this.imgW = this.width; //imgW, imgH 각각 초기 이미지 넓이 높이로 초기화
+            _this.imgH = this.height;
+            $('#canvas').attr('width', _this.imgW); //캔버스 넓이 높이를 초기 이미지넓이 높이로 변경
+            $('#canvas').attr('height', _this.imgH);
+            _this.ctx.drawImage(this, 0, 0);
+            _this.currentImg = new Image();
+            _this.currentImg.src = _this.canvas.toDataURL();
+            $('#width').val(_this.imgW);
+            $('#height').val(_this.imgH);
+            $(this).off('load');
+
+            _this.registEvent();
+        });
+        _this.editImg.src = path;
+
+    }
+
     , registEvent: function() {
         var _this = this;
+
         $('#show_width').on('click', function () {
-            _this.setSize("show_width");
+            _this.reSize();
         });
 
         $('#show_height').on('click', function () {
-            _this.setSize("show_height");
+            _this.reSize();
+        });
+
+        $("#width").on('focus', function() {
+            $(this).select();
+        });
+
+        $("#height").on('focus', function() {
+            $(this).select();
         });
 
         $("#width").keydown(function(key) {
-            _this.enterKeyDown("width", key);
+            if(key.keyCode == "13") _this.reSize();
         });
 
         $("#height").keydown(function(key) {
-            _this.enterKeyDown("height", key);
+            if(key.keyCode == "13") _this.reSize();
+        });
+
+        $('#toggle').on('click', function() {
+            _this.onToggle();
         });
 
         $('#left').on('click', function () {
@@ -44,317 +84,464 @@ var imageEditor = {
             _this.setRotation("right");
         });
 
-        $('#x_flip').on('click', function () {
-            _this.setFlip("X", "Y");
+        $('#x_flip').on('click', function() {
+            _this.setFlip("x_flip");
         });
 
-        $('#y_flip').on('click', function () {
-            _this.setFlip("Y", "X");
+        $('#y_flip').on('click', function() {
+            _this.setFlip("y_flip");
         });
 
-        $('#crop').on('click', function(){
-            _this.letCrop();
+        $('#crop').on('click', function() {
+            _this.crop();
         });
 
-        $('#zoom_in').on('click', function(){
-            _this.setZooming("zoom_in");
-        });
+        $('#brightness').on('input',function(){
+            var w = $('#width').val();
+            var h = $('#height').val();
 
-        $('#zoom_out').on('click', function(){
-            _this.setZooming("zoom_out");
-        });
+            _this.ctx.drawImage(_this.currentImg, 0, 0, w, h); //editImg 로 하는지 currentImg로 하는지,,,,,
 
-        $('#blur').on('input', function() {
-            _this.setFilterBlur();
-        });
-
-        $('#brightness').on('input', function(){
             _this.setFilterBright();
         });
 
         $('#contrast').on('input', function(){
+            var w = $('#width').val();
+            var h = $('#height').val();
+
+            _this.ctx.drawImage(_this.currentImg, 0, 0, w, h);
+
             _this.setFilterContrast();
         });
 
-        $('#imageReturn').on('click', function(){
+        $('#blur').on('input', function(){
+            var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
+            var filteredData = _this.setFilterBlur(imgData, 90);
+
+            _this.ctx.putImageData(filteredData, 0 , 0);
+        });
+
+        $('#sharpen').on('input', function() {
+            var imgData = _this.ctx.getImageData(0,0, _this.canvas.width, _this.canvas.height);
+            var filteredData = _this.sharpen(imgData);
+
+            _this.ctx.putImageData(filteredData, 0 , 0);
+        });
+
+        $('#zoom_in').on('click', function () {
+            _this.zoom("zoom_in");
+        });
+
+        $('#zoom_out').on('click', function () {
+            _this.zoom("zoom_out");
+        });
+
+        $('#resetBtn').on('click', function() {
             _this.reset();
         });
 
-        $('#toggle').on('click', function(){
-            _this.onToggle();
+        $('.cropBox').on('mousedown', function(e) {
+            var w = parseInt($('#width').val(),10);
+            var h = parseInt($('#height').val(),10);
+
+            _this.boundInfo = $('#canvas')[0].getBoundingClientRect();
+
+            _this.prevX = e.clientX;
+            _this.prevY = e.clientY;
+
+            if($(e.target).hasClass("cropBox")) {
+                _this.mouseMoveType = "move";
+            } else {
+                _this.mouseMoveType = "crop";
+            }
+
+            $(window).on('mousemove', {target: e.target, prevX: e.offsetX, prevY: e.offsetY}, _this.onMouseMove);
+
+            $('.cropBox').on('mouseup', function() {
+                $(window).off('mousemove');
+                $('.cropBox').off('mouseup');
+            });
+        });
+
+        $('#applyBtn').on("click", function(){
+            _this.saveImage();
         });
     }
-    , enterKeyDown: function(type,key) {
-        if (type == "width" && key.keyCode == 13) {
+
+    , controlImage: function(type, dir) {
+        var _this = this;
+        this.currentImg.src = this.canvas.toDataURL();
+        $(this.currentImg).on('load', function() {
             var w = $('#width').val();
-            editImg.style.width = w + "px";  //$('#img_con img').width(w);
-            if(this.flag) {
-                $('#height').val( editImg.height );
-            }
-        } else if (type == "height" && key.keyCode == 13) {
             var h = $('#height').val();
-            editImg.style.height = h + "px";
+
+            switch(type) {
+                case "resize":
+                    $('#canvas').attr('width', w);
+                    $('#canvas').attr('height', h);
+                    //_this.ctx.imageSmoothingQuality = "high";
+                    //_this.ctx.imageSmoothingEnabled = false;
+                    _this.ctx.drawImage(this, 0, 0, w, h);
+                    break;
+
+                case "rotation":
+                    $('#canvas').attr('width', w);
+                    $('#canvas').attr('height', h);
+
+                    _this.ctx.translate(w / 2, h / 2);
+                    if(dir == "left") {
+                        _this.ctx.rotate(-Math.PI / 2);
+                    } else {
+                        _this.ctx.rotate(Math.PI / 2);
+                    }
+                    _this.ctx.translate(-h / 2, -w / 2);
+
+                    _this.ctx.drawImage(_this.currentImg, 0, 0, h, w);
+                    break;
+
+                case "flip":
+                    _this.clearCanvas();
+                    if(dir == "x_flip"){
+                        // _this.ctx.setTransform(-1,0,0,1,0,0);
+                        _this.ctx.save();
+                        _this.ctx.scale(-1,1);
+                        _this.ctx.drawImage(this, -this.width, 0, w, h);
+                        _this.ctx.restore();
+                    } else {
+                        _this.ctx.setTransform(1,0,0,-1,0,0);
+                        _this.ctx.drawImage(this, 0, -this.height, w, h);
+                    }
+                    break;
+
+                case "zoom":     //canvas image quality에 대해 찾아보기
+                    _this.clearCanvas();
+                    var scale = ( dir == "zoom_in" ? 1.1 : 0.9 );
+                    var currentW = Math.round($('#width').val() * scale);
+                    var currentH = Math.round($('#height').val() * scale);
+                    $('#width').val(currentW);
+                    $('#height').val(currentH);
+                    $('#canvas').attr('width', currentW);
+                    $('#canvas').attr('height', currentH);
+                    _this.ctx.setTransform(scale,0,0,scale,0,0);
+                    _this.ctx.drawImage(this, 0, 0, w, h);
+                    $('#imageRatio').text( (_this.zoomValue += ( dir == "zoom_in" ? ((scale*10)-1) : -((scale*10)+1) ) ) + "%");
+                    break;
+            }
+            $(this).off('load');
+        });
+    }
+
+    , onMouseMove: function(e) {
+        var rect = $('.cropBox')[0].getBoundingClientRect();
+
+        if(imageEditor.mouseMoveType == "move") { // move
+            var moveX = e.clientX - imageEditor.prevX;
+            var moveY = e.clientY - imageEditor.prevY;
+
+            // console.log("moveX : ", moveX);
+            // console.log("moveY : ", moveY);
+
+            $('.cropBox').css({
+                left: $('.cropBox').offset().left + moveX,
+                top: $('.cropBox').offset().top + moveY
+            });
+
+            if( rect.left < imageEditor.boundInfo.left) {
+                $('.cropBox').css({left: imageEditor.boundInfo.left});
+            }
+            if( rect.left + rect.width > imageEditor.boundInfo.right) {
+                $('.cropBox').css({left: imageEditor.boundInfo.left + ( imageEditor.boundInfo.width - rect.width )});
+            }
+            if( rect.top < imageEditor.boundInfo.top) {
+                $('.cropBox').css({top: imageEditor.boundInfo.top});
+            }
+            if( rect.top + rect.height > imageEditor.boundInfo.bottom) {
+                $('.cropBox').css({top: imageEditor.boundInfo.top + ( imageEditor.boundInfo.height - rect.height )});
+            }
+            imageEditor.prevX = e.clientX;
+            imageEditor.prevY = e.clientY;
+
+        } else { // crop
+            var currentResizer = e.data.target;
+
+            var moveX = ( e.clientX - imageEditor.prevX );
+            var moveY = ( e.clientY - imageEditor.prevY );
+
+            var minSize = 50;
+
+            if(currentResizer.classList.contains("bottom-right")) {
+
+                $('.cropBox').css({ left: rect.left, top: rect.top });
+
+                if( rect.left + rect.width > imageEditor.boundInfo.right ){
+                    $('.cropBox').css({width: rect.width -1 });
+                } else if( rect.width + moveX  > minSize ){
+                    $('.cropBox').css({width: rect.width + moveX });
+                }
+
+                if( rect.top + rect.height > imageEditor.boundInfo.bottom ){
+                    $('.cropBox').css({height: rect.height -1 });
+                } else if( rect.height + moveY > minSize){
+                    $('.cropBox').css({height: rect.height + moveY });
+                }
+
+            } else if (currentResizer.classList.contains("bottom-left")) {
+
+                $('.cropBox').css({top: rect.top });
+
+                if( imageEditor.boundInfo.left + rect.width > imageEditor.boundInfo.right - (imageEditor.boundInfo.right - rect.right ) ){
+                    $('.cropBox').css({ left: imageEditor.boundInfo.left });
+                    $('.cropBox').css({ width: rect.width - 1 });
+                } else if( rect.width - moveX  > minSize){
+                    $('.cropBox').css({ width: rect.width - moveX });
+                    $('.cropBox').css({ left: rect.left + moveX });
+                }
+
+                if( imageEditor.boundInfo.top + rect.height > imageEditor.boundInfo.bottom - (rect.top - imageEditor.boundInfo.top) ){
+                    $('.cropBox').css({ height : rect.height - 1 });
+                } else if( rect.height + moveY > minSize){
+                    $('.cropBox').css({ height: rect.height + moveY });
+                }
+
+            } else if (currentResizer.classList.contains("top-right")) {
+
+                $('.cropBox').css({ left: rect.left });
+
+                if( rect.width + moveX  > minSize){
+                    $('.cropBox').css({width: rect.width + moveX });
+                }
+                if( rect.height - moveY > minSize){
+                    $('.cropBox').css({top: rect.top + moveY });
+                    $('.cropBox').css({height: rect.height - moveY });
+                }
+
+            } else if (currentResizer.classList.contains("top-left")) {
+                if( rect.width - moveX > minSize) {
+                    $('.cropBox').css({ width : rect.width - moveX });
+                    $('.cropBox').css({ left: rect.left + moveX});
+                }
+                if( rect.height - moveY > minSize) {
+                    $('.cropBox').css({ height: rect.height - moveY });
+                    $('.cropBox').css({top: rect.top + moveY });
+                }
+            }
+            imageEditor.prevX = e.clientX;
+            imageEditor.prevY = e.clientY;
         }
     }
-    , setSize: function(type) {
-        if(type == "show_width") {
-            var get_width = $('#width').val();
-            editImg.style.width = get_width +'px';
-            if(this.flag) {
-                $('#height').val( editImg.height );
-            }
-        } else if(type == "show_height") {
-            var get_height = $('#height').val();
-            editImg.style.height = get_height +'px';
-        }
+
+    , reSize: function() {
+        this.controlImage("resize");
+        return;
     }
 
     , onToggle: function(){
-        this.flag = !this.flag;
-        if(this.flag) {
-            editImg.style.height = null;
-            $('#asd input').attr('disabled', this.flag);
-        } else {
-            editImg.style.height = $('#height').val() + 'px';
-            $('#asd input').attr('disabled', this.flag);
-        }
+        this.toggleBtn = !this.toggleBtn;
+        $('#apply input').attr('disabled', this.toggleBtn);
     }
 
+    , clearCanvas: function() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    , setRotation: function(type) {
-        var applyValue = "";
-        var rotate = parseInt(this.getTransform("rotate"), 10) || 0;
-        if(type == "left") {
-            rotate -= 90;
-        } else {
-            rotate += 90;
-        }
-        applyValue += "rotate(" + rotate%360 + "deg)";
-
-        var scaleX = parseInt(this.getTransform("scaleX"), 10);
-        if(!isNaN(scaleX) && scaleX != 1) {
-            applyValue += " scaleX(" + scaleX + ")";
-        }
-
-        var scaleY = parseInt(this.getTransform("scaleY"), 10);
-        if(!isNaN(scaleY) && scaleY != 1) {
-            applyValue += " scaleY(" + scaleY + ")";
-        }
-
-        editImg.style.transform = applyValue;
+        //_this.ctx.clearRect(0, 0, _this.canvas.width, _this.canvas.height); // 원래 상태 지우기
+        //_this.ctx.clearRect(-_this.canvas.height / 2, -_this.canvas.width / 2, _this.canvas.height, _this.canvas.width); //rotate시 지우기
+        //_this.ctx.clearRect(-_this.canvas.width, 0, _this.canvas.width, _this.canvas.height); //좌우 반전시 지우기
+        //_this.ctx.clearRect(0, -_this.canvas.height, _this.canvas.width, _this.canvas.height); //상하 반전시 지우기
+        return;
     }
 
-    , setFlip: function(type0, type1) {
-        var applyValue = "";
+    , setRotation: function(dir) { // 좌우측 로테이션
+        var w = $('#width').val();
+        var h = $('#height').val();
+        $('#width').val(h);
+        $('#height').val(w);
 
-        var scale0 = parseInt(this.getTransform("scale" + type0), 10);
-        if(isNaN(scale0) || scale0 == 1) {
-            scale0 = -1;
-        } else {
-            scale0 = 1;
-        }
-        applyValue = "scale" + type0 +"(" + scale0 + ")";
-
-        var scale1 = parseInt(this.getTransform("scale" + type1), 10);
-        if(!isNaN(scale1) && scale1 != 1) {
-            applyValue += " scale" + type1 + "(" + scale1 + ")";
-        }
-
-        var rotate = parseInt(this.getTransform("rotate"), 10);
-        if(!isNaN(rotate) && rotate != 0) {
-            applyValue += " rotate(" + rotate + "deg)";
-        }
-        editImg.style.transform = applyValue;
+        this.controlImage("rotation", dir);
+        return;
     }
 
-    , setTransform: function() {
+    , setFlip: function(dir) {
 
+        this.controlImage("flip", dir);
+        return;
     }
 
-    , getTransform: function(property) {
-        var values = editImg.style.transform.split(")");
-        for(var key in values) {
-            var val = values[key];
-            var prop = val.split("(");
-            if (prop[0].trim() == property) {
-                return prop[1];
+    , crop: function(){
+        var _this = this;
+
+        $('.cropBox').css({
+            "width": parseInt($('#width').val(),10) + "px",
+            "height": parseInt($('#height').val(),10) + "px",
+            "display": "inline-block"
+        });
+
+        $('#cropBtn').css("display","inline-block");
+
+        $('#cropBtn').on('click', function(){
+            var rect = $('.cropBox')[0].getBoundingClientRect();
+
+            var currentImageData = _this.ctx.getImageData( rect.x - _this.boundInfo.x , rect.y - _this.boundInfo.y , rect.width, rect.height);
+
+            $('#canvas').attr("width", rect.width + "px");
+            $('#canvas').attr("height", rect.height + "px");
+
+            _this.ctx.putImageData(currentImageData, 0,0 );
+            _this.currentImg.src = _this.canvas.toDataURL();
+
+            $('.cropBox').css("left", _this.boundInfo.x + (_this.boundInfo.width - rect.width) / 2 + "px");
+            $('.cropBox').css("top", _this.boundInfo.y + (_this.boundInfo.height - rect.height) / 2 + "px");
+
+            $('#width').val(rect.width);
+            $('#height').val(rect.height);
+
+            $('.cropBox').css({ "display": "none"});
+            $('#cropBtn').css({ "display": "none"});
+
+        });
+    }
+
+    , convolution: function(imgData, weights, opaque) {
+        var side = Math.round(Math.sqrt(weights.length));
+        var halfSide = Math.floor(side / 2);
+        var src = imgData.data;
+        var sw = imgData.width;
+        var sh = imgData.height;
+        var w = sw;
+        var h = sh;
+        var output = this.ctx.getImageData(0, 0, w, h); //this.ctx.createImageData(w, h);
+        var dst = output.data;
+        var alphaFac = opaque ? 1 : 0;
+        for (var y = 0; y < h; y++) {
+            for (var x = 0; x < w; x++) {
+                var sy = y;
+                var sx = x;
+                var dstOff = (y * w + x) * 4;
+                var r = 0, g = 0, b = 0, a = 0;
+                for (var cy = 0; cy < side; cy++) {
+                    for (var cx = 0; cx < side; cx++) {
+                        var scy = sy + cy - halfSide;
+                        var scx = sx + cx - halfSide;
+                        if (scy >= 0 && scy < sh && scx >= 0 && scx < sw) {
+                            var srcOff = (scy * sw + scx) * 4;
+                            var wt = weights[cy * side + cx];
+                            r += src[srcOff] * wt;
+                            g += src[srcOff + 1] * wt;
+                            b += src[srcOff + 2] * wt;
+                            a += src[srcOff + 3] * wt;
+                        }
+                    }
+                }
+                dst[dstOff] = r;
+                dst[dstOff + 1] = g;
+                dst[dstOff + 2] = b;
+                dst[dstOff + 3] = a + alphaFac * (255 - a);
             }
         }
-        return "";
+        return output;
     }
 
-    , letCrop: function(){
-
+    , sharpen: function(imgData){
+        return this.convolution(imgData,
+            [ 0, -1,  0,
+                -1, 5, -1,
+                0, -1,  0 ], 0);
     }
 
-    , setFilterBlur: function () {
-        var applyValue = "";
-        var current_value = $('#blur').val();
-        applyValue = "blur(" + current_value + "px)";
-
-        var brightness = $('#brightness').val() ;
-        if(!isNaN(brightness) && brightness != "10"){
-            applyValue += "brightness(" + ( brightness ) / 10 + ")";
-        }
-
-        var contrast = $('#contrast').val();
-        if(!isNaN(contrast) && contrast != "10"){
-            applyValue += "contrast(" + ( contrast ) / 10 + ")";
-        }
-
-        editImg.style.filter = applyValue;
+    , setFilterBlur: function (imgData, value) {
+        var offset = 1/(value/10);
+        return this.convolution(imgData,
+            [ offset, offset, offset,
+                offset, offset, offset,
+                offset, offset, offset ], 0);
     }
 
     , setFilterBright: function () {
-        var applyValue = "";
-        var current_value = ($('#brightness').val()) / 10;
-        applyValue = "brightness(" + current_value + ")";
+        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        var brightness = parseInt($('#brightness').val());
+        var filteredData = this.getFilterBright(imgData, brightness);
+        this.ctx.putImageData(filteredData, 0, 0);
+    }
 
-        var blur = $('#blur').val();
-        if(!isNaN(blur) && blur != "0"){
-            applyValue += "blur(" + blur + "px)";
+    , getFilterBright: function (imgData, value) {
+        var d = imgData.data;
+        this.clearCanvas();
+
+        for(var i=0; i< d.length; i+=4) {
+            d[i] += 255 * (value / 100);
+            d[i+1] += 255 * (value / 100);
+            d[i+2] += 255 * (value / 100);
         }
 
-        var contrast = $('#contrast').val();
-        if(!isNaN(contrast) && contrast != "10"){
-            applyValue += "contrast(" + ( contrast ) / 10 + ")";
-        }
+        return imgData;
+    }
 
-        editImg.style.filter = applyValue;
+    , getFilterContrast: function(imgData, contrast) {
+        var d = imgData.data;
+        contrast *= 2.55;
+        var factor = (255 + contrast) / (255.01 - contrast);
+
+        for(var i=0;i<d.length;i+=4)
+        {
+            d[i] = factor * (d[i] - 128) + 128;
+            d[i+1] = factor * (d[i+1] - 128) + 128;
+            d[i+2] = factor * (d[i+2] - 128) + 128;
+        }
+        return imgData;
     }
 
     , setFilterContrast: function(){
-        var applyValue = "";
-        var current_value = $('#contrast').val();
-        applyValue = "contrast(" + ( current_value ) / 10 + ")";
-
-        var brightness = $('#brightness').val();
-        if(!isNaN(brightness) && brightness != "10"){
-            applyValue += "brightness(" + ( brightness ) / 10 + ")";
-        }
-
-        var blur = $('#blur').val();
-        if(!isNaN(blur) && blur != "0"){
-            applyValue += "blur(" + blur + "px)";
-        }
-
-        editImg.style.filter = applyValue;
+        var imgData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        var filteredData = this.getFilterContrast(imgData, parseInt($('#contrast').val(),10) );
+        this.ctx.putImageData(filteredData, 0, 0);
     }
 
-    , setZooming: function (type) {
-        var now_zoom = parseInt(this.getZooming(),10) || 100;
 
-        if(type == "zoom_in"){
-            now_zoom += 10;
-        } else if(type == "zoom_out") {
-            now_zoom -= 10;
-            if(now_zoom == 0){
-                return 0;
-            }
-        }
-        $('#imageRatio').text(now_zoom + "%");
-        editImg.style.zoom = now_zoom + "%";
-    }
 
-    , getZooming: function () {
-        var values = editImg.style.zoom.split("%");
-        if (!isNaN(values[0])){
-            return values[0];
-        }
-        return "";
+    , zoom: function(dir) {
+        this.controlImage("zoom",dir);
+
+        return ;
     }
 
     , reset: function(){
-        editImg.style.width = null;
-        editImg.style.height = null;
+        this.clearCanvas();
+        this.imgW = this.editImg.width;
+        this.imgH = this.editImg.height;
+        $('#canvas').attr('width', this.imgW);
+        $('#canvas').attr('height', this.imgH);
+        this.ctx.drawImage(this.editImg, 0, 0);
+        $('#width').val(this.imgW);
+        $('#height').val(this.imgH);
 
-        var w = editImg.width;
-        $('#width').val(w);
-        var h = editImg.height;
-        $('#height').val(h);
+        this.zoomValue = 100;
+        $('#imageRatio').text( this.zoomValue + "%");
 
-        editImg.style.width = w +'px';
-        editImg.style.height = h +'px';
-        editImg.style.transform = null;
-        editImg.style.filter =  null;
-        editImg.style.zoom = null;
+    }
 
-        this.flag = false;
-        $('.range_bg').css('background',""); //document.getElementsByClassName("range_bg")[0].style.background = null; 로도 가능
-        $('#asd input').attr('disabled', this.flag);
-        $('#blur').val("0");
-        $('#brightness').val("10");
-        $('#contrast').val("10");
-        $('#imageRatio').text("100%");
+    , saveImage: function () {
+        var _this = this;
+        var imgData = _this.ctx.getImageData(0, 0, $('#width').val(), $('#height').val());
+
+        _this.ctx.putImageData(imgData,0 ,0);
+
+        _this.dataURL = _this.canvas.toDataURL();
+        console.log(_this.dataURL);
+        document.getElementById("sendImage").src = _this.dataURL;
+
+        /*
+         $.ajax({
+         type: "POST",
+         url: "script.php",
+         data: {
+         imgBase64: _this.dataURL
+         }
+         }).done(function(o) {
+         console.log('saved');
+         });
+         */
     }
 }
-        var currentResizer = e.data.target;
 
-        //if(currentResizer.classList.contains("bottom-right")) {
-        //    var w = rect.width - (imageEditor.prevX - e.offsetX);
-        //    var h = rect.height - (imageEditor.prevY - e.offsetY);
-        //
-        //    if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( rect.left - imageEditor.imgInfo.left)) {
-        //        el.style.width = w + "px";
-        //    }
-        //    if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( rect.top - imageEditor.imgInfo.top )) {
-        //        el.style.height = h + "px";
-        //    }
-        //    if(rect.left > imageEditor.imgInfo.left){
-        //        el.style.left = rect.left + "px";
-        //    }
-        //    if(rect.top > imageEditor.imgInfo.top){
-        //        el.style.top = rect.top + "px";
-        //    }
-        //
-        //} else if (currentResizer.classList.contains("bottom-left")) {
-        //    var w = rect.width + (imageEditor.prevX - e.offsetX);
-        //    var h = rect.height - (imageEditor.prevY - e.offsetY);
-        //    if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( imageEditor.imgInfo.right - rect.right)) {
-        //        el.style.width = w + "px";
-        //    }
-        //    if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( rect.top - imageEditor.imgInfo.top )) {
-        //        el.style.height = h + "px";
-        //    }
-        //    if(rect.top > imageEditor.imgInfo.top){
-        //        el.style.top = rect.top + "px";
-        //    }
-        //    if(rect.left > imageEditor.imgInfo.left) {
-        //        el.style.left = rect.left - (prevX - e.offsetX) + "px";
-        //    }
-        //} else if (currentResizer.classList.contains("top-right")) {
-        //    var w = rect.width  - (imageEditor.prevX - e.offsetX);
-        //    var h = rect.height + (imageEditor.prevY - e.offsetY);
-        //    if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( rect.left - imageEditor.imgInfo.left)) {
-        //        el.style.width = w + "px";
-        //    }
-        //    if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( imageEditor.imgInfo.bottom - rect.bottom )) {
-        //        el.style.height = h + "px";
-        //    }
-        //    if(rect.top > imageEditor.imgInfo.top) {
-        //        el.style.top = rect.y - (imageEditor.prevY - e.offsetY) + "px";
-        //    }
-        //    if(rect.left > imageEditor.imgInfo.left){
-        //        el.style.left = rect.left + "px";
-        //    }
-        //} else if (currentResizer.classList.contains("top-left")) {
-        //    var w = rect.width + (imageEditor.prevX - e.offsetX);
-        //    var h = rect.height + (imageEditor.prevY - e.offsetY);
-        //    if(w > imageEditor.imgInfo.minWidth && w < imageEditor.imgInfo.maxWidth - ( imageEditor.imgInfo.right - rect.right )) {
-        //        el.style.width = w + "px";
-        //    }
-        //    if(h > imageEditor.imgInfo.minHeight && h < imageEditor.imgInfo.maxHeight - ( imageEditor.imgInfo.bottom - rect.bottom )) {
-        //        el.style.height = h + "px";
-        //    }
-        //    if(rect.top > imageEditor.imgInfo.top) {
-        //        el.style.top = rect.top - (imageEditor.prevY - e.offsetY) + "px";
-        //    }
-        //    if(rect.left > imageEditor.imgInfo.left){
-        //        el.style.left = rect.left - (prevX - e.offsetX) + "px";
-        //    }
-
-
-    $(function() {
+$(function() {
     imageEditor.init();
 });
-
