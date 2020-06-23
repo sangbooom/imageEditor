@@ -21,7 +21,7 @@ var imageEditor = {
         this.canvas = $('#canvas')[0];
         this.ctx = this.canvas.getContext('2d');
         this.editImg = new Image();
-        this.loadImage("../여기서해라/123.jpeg");
+        this.loadImage("../img/facility_3");
     }
 
     , loadImage: function(path) {
@@ -34,15 +34,15 @@ var imageEditor = {
             $('#canvas').attr('height', _this.imgH);
             _this.ctx.drawImage(this, 0, 0);
             _this.currentImg = new Image();
-            _this.currentImg.src = _this.canvas.toDataURL(); 
+            _this.currentImg.src = _this.canvas.toDataURL();
             $('#width').val(_this.imgW);
             $('#height').val(_this.imgH);
             $(this).off('load');
 
             _this.registEvent();
         });
-        _this.editImg.src = path;   
-         
+        _this.editImg.src = path;
+
     }
 
     , registEvent: function() {
@@ -99,9 +99,9 @@ var imageEditor = {
         $('#brightness').on('input',function(){
             var w = $('#width').val();
             var h = $('#height').val();
-        
+
             _this.ctx.drawImage(_this.currentImg, 0, 0, w, h); //editImg 로 하는지 currentImg로 하는지,,,,,
-        
+
             _this.setFilterBright();
         });
 
@@ -136,7 +136,7 @@ var imageEditor = {
             _this.zoom("zoom_out");
         });
 
-        $('#imageReturn').on('click', function() {
+        $('#resetBtn').on('click', function() {
             _this.reset();
         });
 
@@ -163,14 +163,13 @@ var imageEditor = {
             });
         });
 
-        $('#imageSave').on("click", function(){
+        $('#applyBtn').on("click", function(){
             _this.saveImage();
         });
     }
 
     , controlImage: function(type, dir) {
         var _this = this;
-        this.currentImg = new Image();
         this.currentImg.src = this.canvas.toDataURL();
         $(this.currentImg).on('load', function() {
             var w = $('#width').val();
@@ -188,7 +187,7 @@ var imageEditor = {
                 case "rotation":
                     $('#canvas').attr('width', w);
                     $('#canvas').attr('height', h);
-                    
+
                     _this.ctx.translate(w / 2, h / 2);
                     if(dir == "left") {
                         _this.ctx.rotate(-Math.PI / 2);
@@ -196,13 +195,13 @@ var imageEditor = {
                         _this.ctx.rotate(Math.PI / 2);
                     }
                     _this.ctx.translate(-h / 2, -w / 2);
-                    
-                    _this.ctx.drawImage(this, 0, 0, h, w);
+
+                    _this.ctx.drawImage(_this.currentImg, 0, 0, h, w);
                     break;
 
                 case "flip":
                     _this.clearCanvas();
-                    if(dir == "x_flip"){ 
+                    if(dir == "x_flip"){
                         // _this.ctx.setTransform(-1,0,0,1,0,0);
                         _this.ctx.save();
                         _this.ctx.scale(-1,1);
@@ -367,7 +366,7 @@ var imageEditor = {
         return;
     }
 
-    , crop: function(dir){
+    , crop: function(){
         var _this = this;
 
         $('.cropBox').css({
@@ -376,17 +375,9 @@ var imageEditor = {
             "display": "inline-block"
         });
 
-        $('#imageCrop').css("display","inline-block");
+        $('#cropBtn').css("display","inline-block");
 
-        if(_this.angleCount % 2 == 1){
-            this.imgInfo.maxWidth = parseInt($('#height').val(),10);
-            this.imgInfo.maxHeight = parseInt($('#width').val(),10);
-        } else {
-            this.imgInfo.maxWidth = parseInt($('#width').val(),10);
-            this.imgInfo.maxHeight = parseInt($('#height').val(),10);
-        }
-
-        $('#imageCrop').on('click', function(){
+        $('#cropBtn').on('click', function(){
             var rect = $('.cropBox')[0].getBoundingClientRect();
 
             var currentImageData = _this.ctx.getImageData( rect.x - _this.boundInfo.x , rect.y - _this.boundInfo.y , rect.width, rect.height);
@@ -399,12 +390,12 @@ var imageEditor = {
 
             $('.cropBox').css("left", _this.boundInfo.x + (_this.boundInfo.width - rect.width) / 2 + "px");
             $('.cropBox').css("top", _this.boundInfo.y + (_this.boundInfo.height - rect.height) / 2 + "px");
-            
+
             $('#width').val(rect.width);
             $('#height').val(rect.height);
 
             $('.cropBox').css({ "display": "none"});
-            $('#imageCrop').css({ "display": "none"});
+            $('#cropBtn').css({ "display": "none"});
 
         });
     }
