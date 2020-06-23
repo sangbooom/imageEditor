@@ -18,15 +18,22 @@
     <script type="text/javascript" src="../js/rollingEvent.js"></script>
     <script type="text/javascript" src="../js/main.js"></script>
     <script type="text/javascript" src="../js/gnb.js"></script>
+    <!--<script type="text/javascript" src="../js/imageEditor/image_editor_bak.js"></script>-->
     <script type="text/javascript" src="../js/imageEditor/image_editor.js"></script>
     <script type="text/javascript" src="../js/imageEditor/imageEditorCanvas.js"></script>
     <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnBase.js"></script>
     <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnSize.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/imageEditorBtnRotate.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/imageEditorBtnFlip.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnZoom.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnBrightness.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnBlur.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnContrast.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnSharpen.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnCrop.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnApply.js"></script>
+    <script type="text/javascript" src="../js/imageEditor/ImageEditorBtnReset.js"></script>
     <script type="text/javascript" src="../js/imageEditor/imageEditorBtnCon.js"></script>
-    <!--<script type="text/javascript" src="../js/imageEditor/ControlBtn.js"></script>-->
-    <!--<script type="text/javascript" src="../js/imageEditor/Events.js"></script>-->
-
-
     <script type="text/javascript" src="../js/aos/aos.js"></script>
     <script type="text/javascript">
 
@@ -74,7 +81,7 @@
                                         <div class="tool_form_style_0_title">
                                             세로 px
                                         </div>
-                                        <div class="tool_form_style_0_content" id="apply">
+                                        <div class="tool_form_style_0_content">
                                             <input type="text" class="show option_input_style_0" id="height" placeholder="0">
                                             <input type="button" class="editor_input_button border_left_none width37" id="show_height" value="적용">
                                         </div>
@@ -177,7 +184,7 @@
                                         </div>
                                         <div class="tool_form_style_0_content">
                                             <div class="range_con">
-                                                <input type="range" id="brightness" value="0" min="-3" max="3">
+                                                <input type="range" id="brightness" value="0" min="-100" max="100">
                                                 <div class="range_bg"></div>
                                             </div>
                                         </div>
@@ -209,7 +216,7 @@
                                         </div>
                                         <div class="tool_form_style_0_content">
                                             <div class="range_con">
-                                                <input type="range" id="contrast" value="0" min="0" max="20">
+                                                <input type="range" id="contrast" value="0" min="-100" max="100">
                                                 <div class="range_bg"></div>
                                             </div>
                                         </div>
@@ -265,13 +272,10 @@
         </div>
     </div>
     <div class="image_editor_btn_con">
-        <button id="imageCrop" style="display: none">자르기</button>
-        <button id="imageReturn">초기화</button>
-        <button id="imageSave">적용</button>
-        <button id="imageCancel">취소</button>
-        <!--<button id="plus">+</button>-->
-        <!--<button id="minus">-</button>-->
-
+        <button id="cropBtn" style="display: none">자르기</button>
+        <button id="resetBtn">초기화</button>
+        <button id="applyBtn">적용</button>
+        <button id="cancelBtn">취소</button>
     </div>
 </div>
 </body>
