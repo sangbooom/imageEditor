@@ -1,42 +1,60 @@
 /**
- * Created by user on 2020-06-23.
+ * Created by user on 2020-06-22.
  */
 var imageEditorBtnBlur = function () {
-    this.imageEditorCanvas;
-    this.convolution;
-    this.init();
+
+    this.blurValue = 0;
+    //this.blurMaxValue = 10;
+    this.blurRange;
+
 }
 
+$.extend(imageEditorBtnBlur, imageEditorBtnBase );
+
 imageEditorBtnBlur.prototype = {
-    init : function () {
-        this.imageEditorCanvas = imageEditorCanvas;
-        this.convolution = imageEditorBtnSharpen.prototype.convolution;
+
+    init : function(){
+
+        this.blurRange = $("#imageEditorBlurRange");
         this.registEvent();
+
     }
 
     , registEvent : function () {
+
         var _this = this;
-
-        $('#blur').on('input', function(){
-            var imgData = _this.imageEditorCanvas.ctx.getImageData(0,0, _this.imageEditorCanvas.canvas.width, _this.imageEditorCanvas.canvas.height);
-            var filteredData = _this.setFilterBlur(imgData, 90);
-
-            _this.imageEditorCanvas.ctx.putImageData(filteredData, 0 , 0);
+        $( this.blurRange ).on("input",function() {
+            _this.blurValue = this.value - 255;
+            bm.ImageEditorCanvasCon.filterControl("blur", _this.blurValue );
         });
     }
-    , setFilterBlur: function (imgData, value) {
-        var offset = 1/(value/10);
-        return this.convolution(imgData,
-            [ offset, offset, offset,
-                offset, offset, offset,
-                offset, offset, offset ], 0);
+
+
+    /**
+     *  블러 값 입력 ( -255 ~ 255 )
+     * @param val
+     */
+    ,setValue : function ( val ) {
+        val = Math.min( val, 255 );
+        val = Math.max( val, 0 );
+
+        this.blurValue = val;
+        $( this.blurRange).val( this.blurValue + 255 );
     }
 
-    , removeEvent : function () {
-
+    /**
+     * 블러
+     * @returns {number}
+     */
+    ,getValue : function(){
+        return this.blurValue - 255;
     }
 
-    , destroy : function () {
+    , removeEvent : function(){
+        $(this.blurRange).off("input");
+    }
+
+    , destroy : function(){
 
     }
 

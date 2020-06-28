@@ -1,60 +1,59 @@
 /**
  * Created by user on 2020-06-22.
  */
-
 var imageEditorBtnBrightness = function () {
-    this.imageEditorCanvas;
-    this.imageEditor;
 
-    this.init();
+    this.brightnessValue = 0;
+    this.brightnessRange;
+
 }
+
+$.extend(imageEditorBtnBrightness, imageEditorBtnBase );
 
 imageEditorBtnBrightness.prototype = {
 
     init : function(){
-        this.imageEditorCanvas = imageEditorCanvas;
-        this.imageEditor = imageEditor;
 
+        this.brightnessRange = $("#imageEditorBrightnessRange");
         this.registEvent();
+
     }
+
     , registEvent : function () {
+
         var _this = this;
-
-        $('#brightness').on('input',function() {
-            var w = $('#width').val();
-            var h = $('#height').val();
-
-            _this.imageEditorCanvas.ctx.drawImage(_this.imageEditor.currentImg, 0, 0, w, h); //editImg 로 하는지 currentImg로 하는지,,,,,
-
-            _this.setBrightness();
+        $( this.brightnessRange ).on("input",function() {
+            _this.brightnessValue = this.value - 100;
+            bm.ImageEditorCanvasCon.filterControl("brightness", _this.brightnessValue );
         });
     }
 
-    , setBrightness: function () {
-        var imgData = this.imageEditorCanvas.ctx.getImageData(0, 0, this.imageEditorCanvas.canvas.width, this.imageEditorCanvas.canvas.height);
-        var brightness = parseInt($('#brightness').val());
-        var filteredData = this.getBrightness(imgData, brightness);
-        this.imageEditorCanvas.ctx.putImageData(filteredData, 0, 0);
+
+    /**
+     *  밝기 값 입력 ( -100 ~ 100 )
+     * @param val
+     */
+    ,setValue : function ( val ) {
+        val = Math.min( val, 100 );
+        val = Math.max( val, -100 );
+
+        this.brightnessValue = val;
+        $( this.brightnessRange).val( this.brightnessValue + 100 );
     }
 
-    , getBrightness: function (imgData, value) {
-        var d = imgData.data;
-        this.imageEditorCanvas.ctx.clearRect(0, 0, $('#width').val(), $('#height').val());
-
-        for(var i=0; i< d.length; i+=4) {
-            d[i] += 255 * (value / 100);
-            d[i+1] += 255 * (value / 100);
-            d[i+2] += 255 * (value / 100);
-        }
-
-        return imgData;
+    /**
+     * 밝기
+     * @returns {number}
+     */
+    ,getValue : function(){
+        return this.brightnessValue - 100;
     }
 
+    , removeEvent : function(){
+        $('#brightnessField').off("input");
+    }
 
     , destroy : function(){
-
-    }
-    , removeEvent : function(){
 
     }
 

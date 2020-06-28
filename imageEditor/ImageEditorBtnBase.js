@@ -16,9 +16,10 @@ imageEditorBtnType.IMAGE_EDITOR_BUTTON_APPLY = "IMAGE_EDITOR_BUTTON_APPLY";
 imageEditorBtnType.IMAGE_EDITOR_BUTTON_RESET = "IMAGE_EDITOR_BUTTON_RESET";
 
 
-var imageEditorBtnBase = function( elementId ){
+var imageEditorBtnBase = function( elementId, type ){
 
     this.id = elementId;
+    this.type = type;
 
     this.value;
     this.element;

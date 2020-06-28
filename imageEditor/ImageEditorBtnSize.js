@@ -2,23 +2,16 @@
  * Created by user on 2020-06-17.
  */
 
-var imageEditorBtnSize = function(){
+var imageEditorBtnSize = function( type ){
+    this.type = type;
+    this.isSync = true;
 
-    this.imageEditorCanvas;
+    this.widthField;
+    this.heightField;
+    this.wApplyBtn;
+    this.hApplyBtn;
 
-    this.widthInput;
-    this.heightInput;
-
-    this.appliedWidth;
-    this.appliedHeight;
-
-    this.widthApplyBtn;
-    this.heightApplyBtn;
-
-    this.onChange;
-
-    this.init();
-
+    this.onChange = null;
 }
 
 $.extend(imageEditorBtnSize, imageEditorBtnBase );
@@ -26,113 +19,118 @@ $.extend(imageEditorBtnSize, imageEditorBtnBase );
 imageEditorBtnSize.prototype = {
 
     init : function () {
-        this.imageEditorCanvas = imageEditorCanvas;
-        this.widthInput = document.querySelector("#width");
-        this.heightInput = document.querySelector("#height");
 
-        this.widthApplyBtn = document.querySelector( "#show_width" );
-        this.heightApplyBtn = document.querySelector( "#show_height" );
+        this.widthField = document.querySelector("#imageEditorWidthField");
+        this.heightField = document.querySelector("#imageEditorHeightField");
 
-        this.widthInput.value = this.imageEditorCanvas.img.width;
-        this.heightInput.value = this.imageEditorCanvas.img.height;
+        this.wApplyBtn = document.querySelector( "#imageEditorWidthApplyBtn" );
+        this.hApplyBtn = document.querySelector( "#imageEditorHeightApplyBtn" );
+        this.syncBtn = document.querySelector( "#imageEditorSyncBtn" );
 
-        imageEditorBtnSize.prototype.isSync = true;
-        this.onChange = null;
-
-        this.appliedWidth = this.widthInput.value;
-        this.appliedHeight = this.heightInput.value;
-
-        $('#height').attr('disabled', imageEditorBtnSize.prototype.isSync);
-
+        var currentSize =  bm.imageEditor.ImageEditorCanvasCon.getSize();
+        this.setValue( currentSize.width, currentSize.height );
+        this.sizeSyncLock( this.isSync );
         this.registEvent();
     }
 
-    , loadImage : function (width, height) {
-        var _this = this;
-        var img = new Image();
-        img.src = this.imageEditorCanvas.canvas.toDataURL();
-        $(img).on('load', function(){
-            $(_this.imageEditorCanvas.canvas).attr('width', width);
-            $(_this.imageEditorCanvas.canvas).attr('height', height);
-            _this.imageEditorCanvas.ctx.drawImage(img, 0, 0, width, height);
-        });
+    /**
+     * 비율대로 움직일지 여부 셋팅
+     * @param bool
+     */
+    ,sizeSyncLock : function ( bool ) {
+        this.isSync = bool;
+        $( this.heightField ).attr('disabled', bool );
     }
 
-    , reSize : function () {
-        var currentWidth = this.widthInput.value;
-        var currentHeight = this.heightInput.value;
-        var newHeight;
+    /**
+     * 비율에 맞게 높이 설정하기.
+     */
+    ,resetSyncSize : function () {
+        var currentWidth = this.widthField.value;
+        var currentHeight;
+        var imgNaturalSize = bm.imageEditor.ImageEditorCanvasCon.getNaturalSize();
 
-        if( imageEditorBtnSize.prototype.isSync ){
-            var newHeight = (this.imageEditorCanvas.img.width > this.imageEditorCanvas.img.height) ?
-            currentWidth * ( this.imageEditorCanvas.img.naturalHeight / this.imageEditorCanvas.img.naturalWidth ) :
-            currentHeight * ( this.imageEditorCanvas.img.naturalWidth / this.imageEditorCanvas.img.naturalHeight );
-
-            this.setSize( currentWidth, Math.round(newHeight) );
+        if( this.isSync ) {
+            currentHeight = currentWidth * ( imgNaturalSize.height / imgNaturalSize.width );
         } else {
-            this.setSize( currentWidth, currentHeight );
+            currentHeight = this.heightField.value;
+        }
+
+        this.setValue( currentWidth, Math.round( currentHeight ) );
+    }
+
+    /**
+     * input 필드들에 size 값 적용하기
+     * @param width
+     * @param height
+     */
+    , setValue : function ( width, height ) {
+        this.widthField.value = width;
+        this.heightField.value = height;
+    }
+
+    /**
+     * input 필드 값 반환
+     */
+    , getValue : function ( width, height ) {
+        return { width : this.widthField.value , height : this.heightField.value };
+    }
+
+    /**
+     * 이미지에 사이즈 적용하기.
+     */
+    ,applySize : function () {
+        bm.imageEditor.ImageEditorCanvasCon.drawImage( this.widthField.value, this.heightField.value );
+    }
+
+    , checkNumber : function (key,dir) {
+        if( key.keyCode != 8 && key.keyCode != 13 && ( key.keyCode < 96 || key.keyCode > 105 ) ) {
+            alert("숫자만 입력해주세요");
+            $(dir == "widthInput" ? this.widthInput : this.heightInput).keypress(function (e) {
+                e.preventDefault();
+                if( key.keyCode >= 96 || key.keyCode <= 105 ) {
+                    $(this).off("keypress");
+                }
+            });
+        } else if(key.keyCode == 13 ) {
+            if( this.isSync ) this.resetSyncSize();
         }
     }
-
-    , setSize : function ( width, height ) {
-        this.appliedWidth = width;
-        this.appliedHeight = height;
-
-        this.widthInput.value = width;
-        this.heightInput.value = height;
-
-        this.loadImage(width, height);
-    }
-
     , registEvent : function () {
         var _this = this;
 
-        $( this.widthInput).on("click", function(){
-            $(this).select();
-        });
-
-        $( this.heightInput).on("click", function(){
-            $(this).select();
-        });
-
-        $( this.widthInput).keydown(function(key){
-           if(key.keyCode == "13") { // || ( key.keyCode >= 48 && key.keyCode <= 57 ) 숫자  , 그리고 image rotate랑 잘 봐바 졸리다
-               _this.reSize();
-           } else {
-               alert("숫자만 입력해주세요");
-           }
-        });
-
-        $( this.heightInput).keydown(function(key){
-            if(key.keyCode == 13) _this.reSize();
-        });
-
-        $( this.widthApplyBtn ).on("click", function (e) {
-            _this.reSize();
-            if( _this.onChange ) _this.onChange( e ); //
-        });
-
-
-        $( this.heightApplyBtn ).on("click", function (e) {
-            var currentWidth = _this.widthInput.value;
-            var currentHeight =_this.heightInput.value;
-
-            if( !imageEditorBtnSize.prototype.isSync ){
-                _this.setSize( currentWidth, currentHeight );
+        $( this.widthField, this.heightField ).on("keyup", function(key){
+            this.value = this.value.replace(bm.valid.onlyNumRegex, "");
+            if(key.keyCode == 13) {
+                if( _this.isSync ) _this.resetSyncSize();
+                _this.applySize();
             }
-            if( _this.onChange ) _this.onChange( e ); //
         });
 
+        $( this.widthField, this.heightField ).on("click", function(){
+            $(this).select();
+        });
 
-        $("#toggle").on("click", function(){
-            imageEditorBtnSize.prototype.isSync = !imageEditorBtnSize.prototype.isSync;
+        $( this.wApplyBtn ).on("click", function (e) {
+            if( _this.isSync ) _this.resetSyncSize();
+            _this.applySize();
+            if( _this.onChange ) _this.onChange( e );
+        });
 
-            $('#height').attr('disabled', imageEditorBtnSize.prototype.isSync);
+        $( this.hApplyBtn ).on("click", function (e) {
+            _this.applySize();
+            if( _this.onChange ) _this.onChange( e );
+        });
+
+        $(this.syncBtn).on("click", function(){
+            _this.sizeSyncLock( !_this.isSync );
         })
     }
 
-    , removeEvent : function () {
 
+    , removeEvent : function () {
+        $( this.widthField, this.heightField, this.wApplyBtn, this.hApplyBtn, this.syncBtn ).off( "click" );
+        $( this.widthField, this.heightField ).off( "keyup" );
     }
 
     , destroy : function () {

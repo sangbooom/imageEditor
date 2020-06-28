@@ -3,17 +3,20 @@
  */
 
 var imageEditorBtnFlip = function(){
-    this.imageEditorCanvas;
 
-    this.init();
+    this.horizontalBtn;
+    this.verticalBtn;
 }
 
-//$.extend(imageEditorBtnFlip, ImageEditorBtnBase);
+$.extend(imageEditorBtnFlip, imageEditorBtnBase );
+
 
 imageEditorBtnFlip.prototype = {
     
     init : function() {
-        this.imageEditorCanvas = imageEditorCanvas;
+
+        this.horizontalBtn = document.querySelector("#imageEditorHorizontalBtn");
+        this.verticalBtn = document.querySelector("#imageEditorVerticalBtn");
 
         this.registEvent();
     }
@@ -21,39 +24,18 @@ imageEditorBtnFlip.prototype = {
     , registEvent : function() {
         var _this = this;
 
-        $('#x_flip').on("click",function(){
-           _this.flip("x_flip");
+        $( this.horizontalBtn ).on("click",function(){
+            bm.ImageEditorCanvasCon.flipImage( "horizontal" );
         });
 
-        $('#y_flip').on("click",function(){
-            _this.flip("y_flip");
-        });
-    }
-
-    , flip : function(dir) {
-        var _this = this;
-        var img = new Image();
-        img.src = this.imageEditorCanvas.canvas.toDataURL();
-        $(img).on('load', function() {
-            var w = $('#width').val();
-            var h = $('#height').val();
-            _this.imageEditorCanvas.ctx.clearRect(0, 0, w, h);
-            if(dir == "x_flip"){
-                _this.imageEditorCanvas.ctx.setTransform(-1,0,0,1,0,0);
-                _this.imageEditorCanvas.ctx.drawImage(img, -img.width, 0, w, h);
-            } else {
-                _this.imageEditorCanvas.ctx.setTransform(1,0,0,-1,0,0);
-                _this.imageEditorCanvas.ctx.drawImage(img, 0, -img.height, w, h);
-            }
+        $( this.verticalBtn ).on("click",function(){
+            bm.ImageEditorCanvasCon.flipImage( "vertical" );
         });
     }
 
-    , captureImage : function() {
 
-    }
-    
     , removeEvent : function () {
-        
+        $( this.horizontalBtn, this.verticalBtn ).off("click");
     }
     
     ,destroy : function () {
