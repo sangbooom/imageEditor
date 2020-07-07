@@ -93,6 +93,9 @@ bm.imageEditor = {
 
             }else if( type == "flip" ){
 
+            }else if( type == "crop" ){
+                var sizeInfo = _this.ImageEditorCanvasCon.getSize();
+                _this.btnList[imageEditorBtnType.IMAGE_EDITOR_BUTTON_SIZE].setValue( sizeInfo.width, sizeInfo.height );
             }
         }
 
@@ -109,7 +112,7 @@ bm.imageEditor = {
 
 $(function() {
     var img = new Image();
-    img.src = '../img/facility_3.png';
+    img.src = '/여기서해라/123.jpeg';
     img.addEventListener("load", function(e){
         e.target.removeEventListener( "load", arguments.callee );
         bm.imageEditor.init( img );

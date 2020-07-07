@@ -23,7 +23,7 @@ imageEditorBtnContrast.prototype = {
 
         var _this = this;
         $( this.contrastRange ).on("input",function() {
-            _this.contrastValue = this.value - 100;
+            _this.contrastValue = this.value;
             bm.ImageEditorCanvasCon.filterControl("contrast", _this.contrastValue );
         });
     }
@@ -35,11 +35,11 @@ imageEditorBtnContrast.prototype = {
      */
     ,setValue : function ( val ) {
 
-        val = Math.min( val, 100 );
-        val = Math.max( val, -100 );
+        val = Math.min( val, 50 );
+        val = Math.max( val, 0 );
 
         this.contrastValue = val;
-        $( this.contrastRange).val( this.contrastValue + 100 );
+        $( this.contrastRange).val( this.contrastValue );
     }
 
     /**
@@ -47,7 +47,7 @@ imageEditorBtnContrast.prototype = {
      * @returns {number}
      */
     ,getValue : function(){
-        return this.contrastValue - 100;
+        return this.contrastValue;
     }
 
     , removeEvent : function(){

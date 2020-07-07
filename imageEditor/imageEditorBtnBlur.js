@@ -3,7 +3,7 @@
  */
 var imageEditorBtnBlur = function () {
 
-    this.blurValue = 0;
+    this.blurValue = 1;
     //this.blurMaxValue = 10;
     this.blurRange;
 
@@ -24,7 +24,7 @@ imageEditorBtnBlur.prototype = {
 
         var _this = this;
         $( this.blurRange ).on("input",function() {
-            _this.blurValue = this.value - 255;
+            _this.blurValue = this.value;
             bm.ImageEditorCanvasCon.filterControl("blur", _this.blurValue );
         });
     }
@@ -35,11 +35,11 @@ imageEditorBtnBlur.prototype = {
      * @param val
      */
     ,setValue : function ( val ) {
-        val = Math.min( val, 255 );
+        val = Math.min( val, 50 );
         val = Math.max( val, 0 );
 
         this.blurValue = val;
-        $( this.blurRange).val( this.blurValue + 255 );
+        $( this.blurRange).val( this.blurValue );
     }
 
     /**
@@ -47,7 +47,7 @@ imageEditorBtnBlur.prototype = {
      * @returns {number}
      */
     ,getValue : function(){
-        return this.blurValue - 255;
+        return this.blurValue;
     }
 
     , removeEvent : function(){
