@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Created by user psb on 2020-06-17.
  */
 bm.imageEditor = {
@@ -112,7 +112,7 @@ bm.imageEditor = {
 
 $(function() {
     var img = new Image();
-    img.src = '/여기서해라/123.jpeg';
+    img.src = '123.jpeg';
     img.addEventListener("load", function(e){
         e.target.removeEventListener( "load", arguments.callee );
         bm.imageEditor.init( img );
