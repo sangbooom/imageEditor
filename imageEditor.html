@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 에디터</title>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/font-nanum/1.0/nanumbarungothic/nanumbarungothic.css">
+    <link rel="stylesheet" href="../여기서해라/2003_psb_test/css/common.css">
+    <link rel="stylesheet" href="../여기서해라/2003_psb_test/css/wevenResponsive.css"/>
+    <link rel="stylesheet" href="../여기서해라/2003_psb_test/css/theme.page.main.health.css"/>
+    <link rel="stylesheet" href="../여기서해라/2003_psb_test/css/wvToolbarNew.css"/>
+    <link rel="stylesheet" href="../여기서해라/2003_psb_test/js/swiper/swiper.min.css"/>
+    <link rel="stylesheet" href="../여기서해라/2003_psb_test/js/aos/aos.css"/>
+    <link rel="stylesheet" href="../여기서해라/index.css">
+    <script type="text/javascript" src="../여기서해라/2003_psb_test/js/jquery-1.12.0.js"></script>
+    <script type="text/javascript" src="../여기서해라/2003_psb_test/js/swiper/swiper.min.js"></script>
+    <script type="text/javascript" src="../여기서해라/2003_psb_test/js/bm.js"></script>
+    <script type="text/javascript" src="../여기서해라/2003_psb_test/js/rollingEvent.js"></script>
+    <script type="text/javascript" src="../여기서해라/2003_psb_test/js/main.js"></script>
+    <script type="text/javascript" src="../여기서해라/2003_psb_test/js/gnb.js"></script>
+
+    <!-- <script type="text/javascript" src="../여기서해라/2003_psb_test/js/image_editor.js"></script> -->
+    <script type="text/javascript" src="../여기서해라/2003_psb_test/js/aos/aos.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorCanvasCon.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditor.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnBase.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnSize.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnRotate.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnFlip.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnZoom.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnBrightness.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnBlur.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnContrast.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnSharpen.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnCrop.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnApply.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnReset.js"></script>
+    <script type="text/javascript" src="../여기서해라/imageEditor/imageEditorBtnCon.js"></script>
+    
+
+    <script type="text/javascript">
+
+function setRangeBg(target){
+            var val = $(target).val();
+            var divisor = $(target).attr('max') - $(target).attr('min');
+            var rangePer = parseInt(val / divisor * 100);
+            $(target).siblings('.range_bg').css('background', 'linear-gradient(to right, #6738ff 0%, #6738ff '+ rangePer +'%, #e4ebf5 ' + rangePer + '%, #e4ebf5 100%)')
+        }
+
+        $(function(){
+            // 이미지 에디터 팝업
+            /*bm.popupManager.add('#imageEditorPopup');*/
+
+            //setRangeBg($('#videoVolumeRange'));
+
+            // 음성조절 (비디오 툴) /  밝기, 블러, 명암, 대비 조절 (이미지 에디터)
+             $('input[type="range"]').on('input', function(){
+                setRangeBg($(this));
+             });
+        });
+
+    </script>
+</head>
+<body>
+    <div class="image_editor_popup_wrap" id="imageEditorPopup">
+    <div class="image_editor_con">
+    <div class="image_toolset_wrap">
+    <div class="toolset">
+    <div class="toolset_box">
+    <div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="flex_con type_3">
+    <div class="tool_form_style_0_con">
+    <div class="tool_form_style_0_list type2">
+    <div class="tool_form_style_0_title">
+    가로 px
+    </div>
+    <div class="tool_form_style_0_content">
+    <input type="text" class="show option_input_style_0" id="imageEditorWidthField" placeholder="0">
+    <input type="button" class="editor_input_button border_left_none width37" id="imageEditorWidthApplyBtn" value="적용">
+    </div>
+    </div>
+    <div class="tool_form_style_0_list type2">
+    <div class="tool_form_style_0_title">
+    세로 px
+    </div>
+    <div class="tool_form_style_0_content">
+    <input type="text" class="show option_input_style_0" id="imageEditorHeightField" placeholder="0">
+    <input type="button" class="editor_input_button border_left_none width37" id="imageEditorHeightApplyBtn" value="적용">
+    </div>
+    </div>
+    </div>
+    <div class="toggle_btn">
+    <img src="../img/tool/Chain_icon.png" id="imageEditorSyncBtn" alt="">
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <div class="toolset">
+    <div class="toolset_box">
+    <div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="tool_btn tool_image">
+    <div class="label_con" id="imageEditorRotateLeftBtn">
+    <div class="label_img">
+    <img src="../img/tool/image_rotate_left.png" alt="좌측90°">
+    </div>
+    <div class="label">좌측90°</div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="tool_btn tool_image">
+    <div class="label_con" id="imageEditorRotateRightBtn">
+    <div class="label_img">
+    <img src="../img/tool/image_rotate_right.png" alt="우측90°">
+    </div>
+    <div class="label">우측90°</div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <div class="toolset">
+    <div class="toolset_box">
+    <div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="tool_btn tool_image">
+    <div class="label_con" id="imageEditorHorizontalBtn">
+    <div class="label_img"><img src="../img/tool/image_reverse_left_right.png" alt="좌우반전"></div>
+    <div class="label">좌우반전</div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="tool_btn tool_image">
+    <div class="label_con" id="imageEditorVerticalBtn">
+    <div class="label_img"><img src="../img/tool/image_reverse_top_bottom.png" alt="상하반전"></div>
+    <div class="label">상하반전</div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <div class="toolset">
+    <div class="toolset_box">
+    <div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="tool_btn tool_image">
+    <div class="label_con" id="imageEditorShowCropBoxBtn">
+    <div class="label_img"><img src="../img/tool/image_crop.png" alt=""></div>
+    <div class="label">잘라내기</div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <!--<div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="tool_btn tool_image">
+    <div class="label_con" id="sharpen">
+    <div class="label_img"><img src="../img/tool/tool_image.png" alt=""></div>
+    <div class="label">선명하게</div>
+    </div>
+    </div>
+    </div>
+    </div>-->
+    </div>
+    </div>
+    <div class="toolset">
+    <div class="toolset_box type_2">
+    <div class="mr20 tool_separation">
+    <div class="tool_separation_inner">
+    <div class="flex_con">
+    <div class="tool_form_style_0_con">
+    <div class="tool_form_style_0_list">
+    <div class="tool_form_style_0_title fontsize0">
+    <span class="label_img"><img src="../img/tool/image_brightness.png" alt="밝기 조절"></span>
+    <span class="label">밝기 조절</span>
+    </div>
+    <div class="tool_form_style_0_content">
+    <div class="range_con">
+    <input type="range" id="imageEditorBrightnessRange" value="100" min="0" max="200">
+    <div class="range_bg"></div>
+    </div>
+    </div>
+    </div>
+    <div class="tool_form_style_0_list">
+    <div class="tool_form_style_0_title fontsize0">
+    <span class="label_img"><img src="../img/tool/image_blur.png" alt="블러 조절"></span>
+    <span class="label">블러 조절</span>
+    </div>
+    <div class="tool_form_style_0_content">
+    <div class="range_con">
+    <input type="range" id="imageEditorBlurRange" value="0" min="0" max="50">
+    <div class="range_bg"></div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="flex_con">
+    <div class="tool_form_style_0_con">
+    <div class="tool_form_style_0_list">
+    <div class="tool_form_style_0_title fontsize0">
+    <span class="label_img"><img src="../img/tool/image_gamma.png" alt="대비 조절"></span>
+    <span class="label">대비 조절</span>
+    </div>
+    <div class="tool_form_style_0_content">
+    <div class="range_con">
+    <input type="range" id="imageEditorContrastRange" value="0" min="0" max="50">
+    <div class="range_bg"></div>
+    </div>
+    </div>
+    </div>
+    <div class="tool_form_style_0_list">
+    <div class="tool_form_style_0_title fontsize0">
+    <span class="label_img"><img src="../img/tool/tool_image.png" alt="선명 조절"></span>
+    <span class="label">선명 조절</span>
+    </div>
+    <div class="tool_form_style_0_content">
+    <div class="range_con">
+    <input type="range" id="imageEditorSharpenRange" value="0" min="0" max="2" step="1">
+    <div class="range_bg"></div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <div class="toolset">
+    <div class="toolset_box">
+    <div class="tool_separation">
+    <div class="tool_separation_inner">
+    <div class="tool_form_style_0_con">
+    <div class="tool_form_style_0_list">
+    <div class="mr7 tool_form_style_0_content">
+    <div class="mr0 tool_btn type_2 tool_image_enlargement" title="확대" id="zoomInBtn"></div>
+    <div class="tool_btn type_2 tool_image_reduction" title="축소" id="zoomOutBtn"></div>
+    </div>
+    <div class="pr0 tool_form_style_0_title" id="imageEditorZoomText">
+    100%
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    </div>
+    <!--확대축소-->
+    </div>
+    <div class="image_editor_box" id="img_con">
+    <div class="cropBox" id="imageEditorCropLayer">
+    <div class="resizer top-right"></div>
+    <div class="resizer top-left"></div>
+    <div class="resizer bottom-left"></div>
+    <div class="resizer bottom-right"></div>
+    </div>
+    <canvas id="canvas" width="960" height="551" style="border: 1px solid #f5f5f5"></canvas>
+    <img id="sendImage" src="">
+    </div>
+    </div>
+    <div class="image_editor_btn_con">
+    <button id="imageEditorCropConfirmBtn" style="display: none">자르기</button>
+    <button id="imageEditorResetBtn">초기화</button>
+    <button id="imageEditorApplyBtn">적용</button>
+    <button id="imageEditorCancelBtn">취소</button>
+    </div>
+    </div>
+    </body>
+    </html>
