@@ -220,9 +220,20 @@ bm.ImageEditorCanvasCon = {
         console.log( filterValue );
         this.drawImage();
 
+<<<<<<< HEAD
         var imgData = this.ctx.getImageData(0, 0, Math.round( this.currentWidth*this.zoomValue ), Math.round( this.currentHeight*this.zoomValue ) );    
         var filteredData;
         
+=======
+        var imgData = this.ctx.getImageData(0, 0, Math.round( this.currentWidth*this.zoomValue ), Math.round( this.currentHeight*this.zoomValue ) );
+        // var filteredData;
+        // switch ( filterType ){
+        //     case "brightness" : filteredData = this.getFilterBrightness(imgData, filterValue ); break;
+        //     case "contrast" : filteredData = this.getFilterContrast(imgData, filterValue ); break;
+        //     case "blur" : filteredData = this.getFilterBlur(imgData, Math.round( this.currentWidth*this.zoomValue ), Math.round( this.currentHeight*this.zoomValue ), filterValue, false ); break;
+        //     case "sharpen" : filteredData = this.getFilterSharpen(imgData, filterValue ); break;
+        // }
+>>>>>>> 5cf89f659ef78c1a52f2a4180121c4b0167b2f3c
         filteredData = imgData; 
            
         filteredData = this.getFilterBlur(imgData, Math.round( this.currentWidth*this.zoomValue ), Math.round( this.currentHeight*this.zoomValue ), parseInt($('#imageEditorBlurRange').val()), false );
@@ -238,7 +249,12 @@ bm.ImageEditorCanvasCon = {
 
     , getFilterBrightness: function (pixels, value) {
         var d = pixels.data;
+<<<<<<< HEAD
         
+=======
+        // this.ctx.clearRect(0, 0, Math.round( this.currentWidth*this.zoomValue ), Math.round( this.currentHeight*this.zoomValue ));
+
+>>>>>>> 5cf89f659ef78c1a52f2a4180121c4b0167b2f3c
         for(var i=0; i< d.length; i+=4) {
             d[i] += 255 * (value / 100);
             d[i+1] += 255 * (value / 100);
