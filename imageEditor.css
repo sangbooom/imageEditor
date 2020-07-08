@@ -783,7 +783,10 @@ type_3 : 버튼 클릭시 전체 감싸는 진한 보더 없는 경우 (toolset_
 
 .toggle_btn > img { height: 19px; cursor: pointer; }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> e361f976eab06ab5007d7181273d331b596c5d0a
 .cropBox {
     display: none;
     background: rgba(0, 0, 0,0.5);
@@ -821,3 +824,4 @@ type_3 : 버튼 클릭시 전체 감싸는 진한 보더 없는 경우 (toolset_
     right: -3px;
     cursor: se-resize;
 }
+
