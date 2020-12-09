@@ -112,7 +112,7 @@ bm.imageEditor = {
 
 $(function() {
     var img = new Image();
-    img.src = '123.jpeg';
+    img.src = './img/123.jpeg';
     img.addEventListener("load", function(e){
         e.target.removeEventListener( "load", arguments.callee );
         bm.imageEditor.init( img );
